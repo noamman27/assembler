@@ -6,6 +6,6 @@ typedef struct {
     char *defn;
 } nlist;
 
-unsigned hash(char *s);
-nlist *lookup(char *s);
-nlist *install(char *name, char *defn);
+unsigned hash(char *s, nlist *hashtab[]);
+nlist *lookup(char *s, nlist *hashtab[]);
+nlist *install(char *name, char *defn, nlist *hashtab[]);
