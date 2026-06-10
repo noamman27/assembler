@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include "utils.h"
 
+/*list of r commands*/
 RCommand rCommands[] = {
     {"add",  0, 1},
     {"sub",  0, 2},
@@ -14,6 +15,7 @@ RCommand rCommands[] = {
     {NULL,   0, 0}
 };
 
+/*list of i commands*/
 ICommand iCommands[] = {
     {"addi", 10},
     {"subi", 11},
@@ -33,6 +35,7 @@ ICommand iCommands[] = {
     {NULL,   0}
 };
 
+/*list of j commands*/
 JCommand jCommands[] = {
     {"jmp",  30},
     {"la",   31},
@@ -41,6 +44,7 @@ JCommand jCommands[] = {
     {NULL,   0}
 };
 
+/*gets the type of command passed in s, puts the type in t. returns 1 if s is command, and 0 if not*/
 int gettype(char *s, char *t){
     if(isR(s)){
         *t = 'r';
@@ -57,6 +61,7 @@ int gettype(char *s, char *t){
     return 0;
 }
 
+/*checks if command given via s is type r*/
 int isR(char *s){
     int i;
     for(i = 0; rCommands[i].name != NULL; i++){
@@ -66,6 +71,7 @@ int isR(char *s){
     }
     return 0;
 }
+/*checks if command given via s is type i*/
 int isI(char *s){
     int i;
     for(i = 0; iCommands[i].name != NULL; i++){
@@ -75,6 +81,7 @@ int isI(char *s){
     }
     return 0;
 }
+/*checks if command given via s is type j*/
 int isJ(char *s){
     int i;
     for(i = 0; jCommands[i].name != NULL; i++){

@@ -3,6 +3,7 @@
 #include <string.h>
 #include "utils.h"
 
+/*returns a hashed version of s in hashtab*/
 unsigned hash(char *s, nlist *hashtab[]){
     unsigned hashval;
 
@@ -11,6 +12,7 @@ unsigned hash(char *s, nlist *hashtab[]){
     }
     return hashval % HASHSIZE;
 }
+/*looks up s in hashtab. returns a pointer to s on success, and pointer to NULL of failure*/
 nlist *lookup(char *s, nlist *hashtab[]){
     nlist *np;
     for(np = hashtab[hash(s,hashtab)]; np != NULL; np = np->next){
@@ -20,6 +22,7 @@ nlist *lookup(char *s, nlist *hashtab[]){
     }
     return NULL;
 }
+/*adds an nlist object in hashtab with name and defn. returns a pointer to it in success and pointer to NULL of failure*/
 nlist *install(char *name, char *defn, nlist *hashtab[]){
     nlist *np;
     unsigned hashval;

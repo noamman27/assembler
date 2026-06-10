@@ -6,25 +6,27 @@
 #include "../lib/utils.h"
 
 static nlist *macrotab[HASHSIZE];
+
+/*appends text into buffer. makes sure that buffer has enough room,if not it reallocs based in capacity and length. returns 1 on success and 0 on failiure*/
 static int append_text(char **buffer, size_t *capacity, size_t *length, const char *text){
-    size_t text_len = strlen(text);
-    size_t required = *length + text_len + 1;
+    size_t text_len = strlen(text); /*get length of text*/
+    size_t required = *length + text_len + 1; /*compute the required size for buffer*/
     char *tmp;
 
-    if(required > *capacity){
-        size_t new_capacity = (*capacity == 0) ? required : *capacity;
+    if(required > *capacity){ /*if we need to realloc*/
+        size_t new_capacity = (*capacity == 0) ? required : *capacity; /*make sure new_capacity cant be 0 since we will in an infinite loop*/
         while(new_capacity < required){
-            new_capacity *= 2;
+            new_capacity *= 2; /*increment new_capacity as much as needed*/
         }
-        tmp = (char *) realloc(*buffer, new_capacity);
-        if(tmp == NULL){
+        tmp = (char *) realloc(*buffer, new_capacity); /*realloc*/
+        if(tmp == NULL){ /*ensure success*/
             return 0;
         }
-        *buffer = tmp;
+        *buffer = tmp; /*update buffer and capacity*/
         *capacity = new_capacity;
     }
 
-    memcpy(*buffer + *length, text, text_len + 1);
+    memcpy(*buffer + *length, text, text_len + 1); /*put content in buffer and update length*/
     *length += text_len;
     return 1;
 }
