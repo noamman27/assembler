@@ -1,5 +1,6 @@
 #define MAXLINE 81
 int pre_assemble(FILE *f, FILE *write);
+void getword(char word[], char line[]);
 
 typedef struct{
     unsigned int address: 25;
@@ -17,6 +18,6 @@ typedef struct{
     unsigned int funct: 5;
     unsigned int rs: 5;
     unsigned int rd: 5;
-    unsigned int rd: 5;
+    unsigned int rt: 5;
     unsigned int opcode: 6;
 } R_BF;

@@ -1,0 +1,9 @@
+mcro HELLO
+this is a test
+it should print this instead of HELLO
+
+normal instructions
+
+this should be the same in the new file
+
+HELLO

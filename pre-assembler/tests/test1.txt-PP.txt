@@ -1,0 +1,4 @@
+normal instructions
+this should be the same in the new file
+this is a test
+it should print this instead of HELLO

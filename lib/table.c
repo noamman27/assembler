@@ -28,15 +28,21 @@ nlist *install(char *name, char *defn, nlist *hashtab[]){
         if (np == NULL || (np->name = strdup(name)) == NULL){
             return NULL;
         }
+        np->defn = strdup(defn != NULL ? defn : "");
+        if(np->defn == NULL){
+            free(np->name);
+            free(np);
+            return NULL;
+        }
         hashval = hash(name, hashtab);
         np->next = hashtab[hashval];
         hashtab[hashval] = np;
     }
     else {
         free((void *) np->defn);
-        if((np->defn = stedup(defn)) == NULL){
+        if((np->defn = strdup(defn)) == NULL){
             return NULL;
         }
-        return np;
     }
+    return np;
 }
