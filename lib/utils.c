@@ -91,6 +91,16 @@ int isJ(char *s){
     }
     return 0;
 }
+/*returns 0 if given line is only made of whitespace chars, returns 1 otherwise*/
+int whiteline(char line[]){
+    int i;
+    for(i=0; i< sizeof(line); i++){
+        if(!isspace(line[i])){
+            return 0;
+        }
+    }
+    return 1;
+}
 
 /*puts the first word in line inside word. returns the length of the word*/
 int getword(char word[], char line[]){

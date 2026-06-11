@@ -1,4 +1,6 @@
 #define MAXLINE 81
+#define MAX_DATA 256
+#define MAX_CODE 256
 #define IC_START 100
 int pre_assemble(FILE *f, FILE *write);
 
