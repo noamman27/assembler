@@ -1,4 +1,7 @@
 #define HASHSIZE 101
+/*checks if s is a data storage instruction*/
+#define isDataStorageInst(s) strcmp(s, ".dh") || strcmp(s, ".dw") || strcmp(s, ".db") || strcmp(s, ".dh") || strcmp(s, ".asciz");
+
 
 typedef struct nlist {
     char *name;
@@ -9,6 +12,7 @@ typedef struct nlist {
 unsigned hash(char *s, nlist *hashtab[]);
 nlist *lookup(char *s, nlist *hashtab[]);
 nlist *install(char *name, char *defn, nlist *hashtab[]);
+int getword(char word[], char line[]);
 int gettype(char *s, char *t);
 int isR(char *s);
 int isI(char *s);

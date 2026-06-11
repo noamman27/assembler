@@ -92,8 +92,8 @@ int isJ(char *s){
     return 0;
 }
 
-/*puts the first word in line inside word*/
-void getword(char word[], char line[]){
+/*puts the first word in line inside word. returns the length of the word*/
+int getword(char word[], char line[]){
     int i = 0, j = 0;
 
     while(line[i] != '\0' && isspace((unsigned char)line[i])){
@@ -106,4 +106,5 @@ void getword(char word[], char line[]){
     word[j] = '\0';
 
     memmove(line, line + i, strlen(line + i) + 1);
+    return i;
 }

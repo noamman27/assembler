@@ -1,6 +1,6 @@
 #define MAXLINE 81
+#define IC_START 100
 int pre_assemble(FILE *f, FILE *write);
-void getword(char word[], char line[]);
 
 typedef struct{
     unsigned int address: 25;
