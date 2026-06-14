@@ -5,37 +5,65 @@
 #include <string.h>
 #include <stdlib.h>
  
-static nlist *symbletab[HASHSIZE]; /* head of the symble table linked list, starts empty */
-static int code_image[MAX_CODE];
-static int data_image[MAX_DATA];
+static Symble *symbletab = NULL; /* head of the symbol table linked list */
+char *code_image;
+char *data_image;
+static int cp = 0; /*code pointer*/
+static int dp = 0; /*data pointer*/
 static int IC = IC_START;
 static int DC = 0;
 
 int first_pass(FILE *input, FILE *output){
-    char line[MAXLINE], word[MAXLINE], tmp, type;
+    char line[MAXLINE], word[MAXLINE], *tmp, type;
     int isSym = 0, len;
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
-    while(fgets(line,MAXLINE, input) != EOF){
-        if(line[0] == ';' || whiteline(line)){
+    code_image = NULL;
+    data_image = NULL;
+    while(fgets(line, MAXLINE, input) != NULL){
+        if(line[0] == ';' || ((len = getword(word, line)) == 0)){
             continue;
         }
-        len = getword(word, line);
         if(word[len-1] == ':'){ /*check if last char of word is :, if so its a label*/
+            word[len-1] = '\0';
+            if(lookup_symbol(word, NULL)){
+                fprintf(stderr, "label %s is already defined", word);
+            }
+            if(lookup(word, macrotab)){
+                err("ERROR: a label cannot have the same name as a macro");
+            }
             isSym = 1;
         }
-        if(strcmp(word, ".dh") || strcmp(word, ".dw") || strcmp(word, ".db") || strcmp(word, ".dh") || strcmp(word, ".asciz")) {
-            if(isSym) {
-                if(lookup(word, symbletab)){
-                    fprintf(stderr, "label %s already defined", word);
-                    return 0;
-                }
-                /*TODO: add to symble table with data attribute*/
+        if(strcmp(word, ".dh") == 0 ) {
+            dp +=2;
+            tmp = realloc(data_image, dp);
+            if(!tmp){
+                err("realloc error");
+                return 0;
             }
+            data_image = tmp;
         }
-        if(!gettype(word,type)){
-            fprintf(stderr, "err");
+        else if(strcmp(word, ".db") == 0){
+            dp+= 1;
+            tmp = realloc(data_image, dp);
+            if(!tmp){
+                err("realloc error");
+                return 0;
+            }
+            data_image = tmp;
+        }
+        else if(strcmp(word, ".dw") == 0){
+            dp+= 4;
+            tmp = realloc(data_image, dp);
+            if(!tmp){
+                err("realloc error");
+                return 0;
+            }
+            data_image = tmp;
+        }
+        if(!gettype(word,&type)){
+            err("ERROR: command not recognized");
         }
         switch (type)
         {
@@ -87,4 +115,48 @@ int first_pass(FILE *input, FILE *output){
 
     }
     return 1;
+}
+
+
+int lookup_symbol(const char *name, Symble **sp){
+    Symble *s = symbletab;
+
+    while(s){
+        if(strcmp(s->name, name) == 0){
+            if(sp != NULL){
+                *sp = s;
+            }
+            return 1;
+        }
+        s = s->next;
+    }
+    return 0;
+}
+
+int add_symbol(const char *name, int value, int attribute, int *err_flag){
+    Symble *existing = NULL;
+
+    if(lookup_symbol(name, &existing)){                              
+        fprintf(stderr, "Error: symbol '%s' already defined\n", name);
+        *err_flag = 1;                                    
+        return 0;               
+    }                          
+    Symble *s = malloc(sizeof(*s));
+    if(!s){                                               
+        fprintf(stderr, "Error: malloc failed\n");        
+        *err_flag = 1;                                    
+        return 0;                                        
+    }
+    s->name  = strdup(name);  
+    if(s->name == NULL){
+        free(s);
+        fprintf(stderr, "Error: malloc failed\n");
+        *err_flag = 1;
+        return 0;
+    }
+    s->value = value;         
+    s->attribute  = attribute;          
+    s->next  = symbletab;        
+    symbletab   = s; 
+    return 1;                
 }

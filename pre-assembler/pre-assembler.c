@@ -5,8 +5,6 @@
 #include "../main/assembler.h"
 #include "../lib/utils.h"
 
-static nlist *macrotab[HASHSIZE];
-
 /*appends text into buffer. makes sure that buffer has enough room,if not it reallocs based in capacity and length. returns 1 on success and 0 on failiure*/
 static int append_text(char **buffer, size_t *capacity, size_t *length, const char *text){
     size_t text_len = strlen(text); /*get length of text*/
