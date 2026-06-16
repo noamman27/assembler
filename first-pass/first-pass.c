@@ -15,19 +15,21 @@ static int DC = 0;
 
 int first_pass(FILE *input, FILE *output){
     char line[MAXLINE], word[MAXLINE], *tmp, type;
-    int isSym = 0, len;
+    int isSym = 0, len, i;
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
     code_image = NULL;
     data_image = NULL;
+    lp = 0;
     while(fgets(line, MAXLINE, input) != NULL){
         if(line[0] == ';' || ((len = getword(word, line)) == 0)){
             continue;
         }
+        lp = len;
         if(word[len-1] == ':'){ /*check if last char of word is :, if so its a label*/
             word[len-1] = '\0';
-            if(lookup_symbol(word, NULL)){
+            if(lookup_symble(word, NULL)){
                 fprintf(stderr, "label %s is already defined", word);
             }
             if(lookup(word, macrotab)){
@@ -36,13 +38,22 @@ int first_pass(FILE *input, FILE *output){
             isSym = 1;
         }
         if(strcmp(word, ".dh") == 0 ) {
-            dp +=2;
+            if(isSym){
+                add_symble(word, DC, "data",NULL);
+            }
+            dp +=HALF_WORD;
             tmp = realloc(data_image, dp);
             if(!tmp){
                 err("realloc error");
                 return 0;
             }
             data_image = tmp;
+            for(i = dp - HALF_WORD; i<=dp; i++){
+                if(getword(word, line) == 1){
+                    data_image[i] = word;
+                }
+                err("error");
+            }
         }
         else if(strcmp(word, ".db") == 0){
             dp+= 1;
@@ -52,9 +63,50 @@ int first_pass(FILE *input, FILE *output){
                 return 0;
             }
             data_image = tmp;
+            for(i = dp - 1; i<=dp; i++){
+                if(getword(word, line) == 1){
+                    data_image[i] = word;
+                }
+                err("error");
+            }
         }
         else if(strcmp(word, ".dw") == 0){
-            dp+= 4;
+            dp+= WORD;
+            tmp = realloc(data_image, dp);
+            if(!tmp){
+                err("realloc error");
+                return 0;
+            }
+            data_image = tmp;
+            for(i = dp - WORD; i<=dp; i++){
+                if(getword(word, line) == 1){
+                    data_image[i] = word;
+                }
+                err("error");
+            }
+        }
+        else if(strcmp(word, ".asciz") == 0){
+            i = len;
+            while (getword(word, line))
+            {
+                if(isspace(line[i])){
+                    tmp = realloc(data_image, dp);
+                    if(!tmp){
+                        err("realloc error");
+                        return 0;
+                    }
+                    data_image = tmp;
+                    data_image[dp] = word;
+                }
+                dp++;
+                tmp = realloc(data_image, dp);
+                if(!tmp){
+                    err("realloc error");
+                    return 0;
+                }
+                data_image = tmp;
+                data_image[dp] = '\0';
+            }
             tmp = realloc(data_image, dp);
             if(!tmp){
                 err("realloc error");
@@ -118,7 +170,7 @@ int first_pass(FILE *input, FILE *output){
 }
 
 
-int lookup_symbol(const char *name, Symble **sp){
+int lookup_symble(const char *name, Symble **sp){
     Symble *s = symbletab;
 
     while(s){
@@ -133,7 +185,7 @@ int lookup_symbol(const char *name, Symble **sp){
     return 0;
 }
 
-int add_symbol(const char *name, int value, int attribute, int *err_flag){
+int add_symble(const char *name, int value, char *attribute, int *err_flag){
     Symble *existing = NULL;
 
     if(lookup_symbol(name, &existing)){                              
@@ -156,7 +208,7 @@ int add_symbol(const char *name, int value, int attribute, int *err_flag){
     }
     s->value = value;         
     s->attribute  = attribute;          
-    s->next  = symbletab;        
+    s->next  = symbletab;   
     symbletab   = s; 
     return 1;                
 }

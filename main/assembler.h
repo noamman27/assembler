@@ -4,14 +4,17 @@
 #define MAX_DATA 256
 #define MAX_CODE 256
 #define IC_START 100
-#define err(s) fprintf(stderr, s);
+#define WORD 4
+#define HALF_WORD 2
+#define err(s) fprintf(stderr, s)
+static int lp;
 static nlist *macrotab[HASHSIZE];
 int pre_assemble(FILE *f, FILE *write);
 
 typedef struct Symble {
     char *name;
     int value;
-    int attribute;
+    char *attribute;
     struct Symble *next;
 } Symble;
 
