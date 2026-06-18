@@ -6,16 +6,12 @@
 #include <stdlib.h>
  
 static Symble *symbletab = NULL; /* head of the symbol table linked list */
-char *code_image;
-char *data_image;
-static int cp = 0; /*code pointer*/
-static int dp = 0; /*data pointer*/
-static int IC = IC_START;
-static int DC = 0;
+char *code_image, *data_image;
+static int cp = 0, dp = 0, IC = IC_START, DC = 0; /*code pointer*/
 
 int first_pass(FILE *input, FILE *output){
     char line[MAXLINE], word[MAXLINE], *tmp, type;
-    int isSym = 0, len, i;
+    int isSym = 0, len, i, reg;
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
@@ -63,11 +59,8 @@ int first_pass(FILE *input, FILE *output){
                 return 0;
             }
             data_image = tmp;
-            for(i = dp - 1; i<=dp; i++){
-                if(getword(word, line) == 1){
-                    data_image[i] = word;
-                }
-                err("error");
+            if(getword(word, line) == 1){
+                data_image[i] = word;
             }
         }
         else if(strcmp(word, ".dw") == 0){
@@ -82,7 +75,7 @@ int first_pass(FILE *input, FILE *output){
                 if(getword(word, line) == 1){
                     data_image[i] = word;
                 }
-                err("error");
+                err("input error");
             }
         }
         else if(strcmp(word, ".asciz") == 0){
@@ -96,7 +89,7 @@ int first_pass(FILE *input, FILE *output){
                         return 0;
                     }
                     data_image = tmp;
-                    data_image[dp] = word;
+                    data_image[dp] = (char) atoi(word);
                 }
                 dp++;
                 tmp = realloc(data_image, dp);
@@ -122,40 +115,63 @@ int first_pass(FILE *input, FILE *output){
         case 'r':
             if(param_count(word) == 2){
                 rc_bf.rs = 0;
-                if(!(rc_bf.rd = getreg(line))){
-                    fprintf(stderr,"input error");
-                    return 0;
+                reg = getreg(line);
+                if(reg == SYM){
+                    continue;
                 }
-                if(!(rc_bf.rt = getreg(line))){
-                    fprintf(stderr,"input error");
-                    return 0;
+                else if(isdigit(reg)) {
+                    rc_bf.rs = reg;
                 }
-                if(!(rc_bf.funct = getfunct(line))){
-                    fprintf(stderr,"input error");
-                    return 0;
+                else {
+                    err("register input error");
                 }
-                if(!(rc_bf.opcode = getopcode(line))){
+                reg = getreg(line);
+                if(reg == SYM){
+                    continue;
+                }
+                else if(isdigit(reg)) {
+                    rc_bf.rd = reg;
+                }
+                else {
+                    err("register input error");
+                }
+                reg = getreg(line);
+                if(reg == SYM){
+                    continue;
+                }
+                else if(isdigit(reg)) {
+                    rc_bf.rt = reg;
+                }
+                else {
+                    err("register input error");
+                }
+                if(!(rc_bf.opcode = getopcode(word))){
                     fprintf(stderr,"input error");
                     return 0;
                 }
             } else {
-                if(!(rc_bf.rd = getreg(line))){
-                    fprintf(stderr,"input error");
-                    return 0;                    
+                rc_bf.rs = 0;
+                reg = getreg(line);
+                if(reg == SYM){
+                    continue;
                 }
-                if(!(rc_bf.rd = getreg(line))){
-                    fprintf(stderr,"input error");
-                    return 0;
+                else if(isdigit(reg)) {
+                    rc_bf.rd = reg;
                 }
-                if(!(rc_bf.rt = getreg(line))){
-                    fprintf(stderr,"input error");
-                    return 0;
+                else {
+                    err("register input error");
                 }
-                if(!(rc_bf.funct = getfunct(line))){
-                    fprintf(stderr,"input error");
-                    return 0;
+                reg = getreg(line);
+                if(reg == SYM){
+                    continue;
                 }
-                if(!(rc_bf.opcode = getopcode(line))){
+                else if(isdigit(reg)) {
+                    rc_bf.rt = reg;
+                }
+                else {
+                    err("register input error");
+                }
+                if(!(rc_bf.opcode = getopcode(word))){
                     fprintf(stderr,"input error");
                     return 0;
                 }

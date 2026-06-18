@@ -6,6 +6,7 @@
 #define IC_START 100
 #define WORD 4
 #define HALF_WORD 2
+#define SYM 's'
 #define err(s) fprintf(stderr, s)
 static int lp;
 static nlist *macrotab[HASHSIZE];
