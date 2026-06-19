@@ -28,7 +28,7 @@ typedef struct{
 typedef struct{
     unsigned int immed: 16;
     unsigned int rs: 5;
-    unsigned int rd: 5;
+    unsigned int rt: 5;
     unsigned int opcode: 6;
 } I_BF;
 typedef struct{

@@ -135,20 +135,19 @@ int first_pass(FILE *input, FILE *output){
                     return 0;
                 }
                 if(reg == SYM){
-                    continue;
+                    err("error: a symble cannot be given as a parameter to a move command");
+                    return 0;
                 }
                 rc_bf.rd = reg - 1;
                 if(!(reg = getparam(line, lp, tmp, i))){
                     return 0;
                 }
                 if(reg == SYM){
-                    continue;
-                }
-                rc_bf.rt = reg - 1;
-                if(!(rc_bf.opcode = getopcode(word))){
-                    fprintf(stderr,"input error");
+                    err("error: a symble cannot be given as a parameter to a move command");
                     return 0;
                 }
+                rc_bf.rt = reg - 1;
+                rc_bf.opcode = 1;
             } else {
                 if(!(reg = getparam(line, lp, tmp, i))){
                     return 0;
@@ -171,38 +170,138 @@ int first_pass(FILE *input, FILE *output){
                     continue;
                 }
                 rc_bf.rt = reg - 1;
-                if(!(rc_bf.opcode = getopcode(word))){
+                rc_bf.opcode = 0;
+            }
+            break;
+        case 'i':
+            if(isarithorlog(word)){
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg == SYM){
+                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                    return 0;
+                }
+                ic_bf.rs = reg - 1;
+                if(getparam(line, lp, tmp, i) != IMMED){
+                    err("error: no immediate value given to i command");
+                    return 0;
+                }
+                ic_bf.immed = i;
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg == SYM){
+                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                    return 0;
+                }
+                ic_bf.rt = reg - 1;
+                if(!(ic_bf.opcode = getopcode(word))){
+                    /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
+                    return 0;
+                }
+            }
+            if(iscond(word)){
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg == SYM){
+                    err("error: the first and second parameters of a conditional command must be registers");
+                    return 0;
+                }
+                ic_bf.rs = reg - 1;
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg == SYM){
+                    err("error: the first and second parameters of a conditional command must be registers");
+                    return 0;
+                }
+                ic_bf.rt = reg - 1;
+                if(getparam(line, lp, tmp, i) != SYM){
+                    err("error: no immediate value given to i command");
+                    return 0;
+                }
+                /*prolly need to add tmp to code image*/
+                if(!(ic_bf.opcode = getopcode(word))){
+                    /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
+                    return 0;
+                }
+            }
+            if(isloading(word)){
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg == SYM){
+                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                    return 0;
+                }
+                ic_bf.rs = reg - 1;
+                if(getparam(line, lp, tmp, i) != IMMED){
+                    err("error: no immediate value given to i command");
+                    return 0;
+                }
+                if(i < -16 || i > 16){
+                    err("error: cannot offset by more than 16 bits");
+                    return 0;
+                }
+                ic_bf.immed = i;
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg == SYM){
+                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                    return 0;
+                }
+                ic_bf.rt = reg - 1;
+                if(!(ic_bf.opcode = getopcode(word))){
                     /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
                     return 0;
                 }
             }
             break;
-        case 'i':
-            if(!(reg = getparam(line, lp, tmp, i))){
-                return 0;
-            }
-            if(reg == SYM){
-                continue;
-            }
-            ic_bf.rs = reg - 1;
-            if(getparam(line, lp, tmp, i) != IMMED){
-                err("error: no immediate value given to i command");
-                return 0;
-            }
-            ic_bf.immed = i;
-            if(!(reg = getparam(line, lp, tmp, i))){
-                return 0;
-            }
-            if(reg == SYM){
-                continue;
-            }
-            ic_bf.rs = reg - 1;
-            if(!(ic_bf.opcode = getopcode(word))){
-                /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
-                return 0;
-            }
-            break;
         case 'j':
+            if(strcmp(word, "jmp") == 0){
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg == SYM){
+                    jc_bf.opcode = 30;
+                    jc_bf.reg = 0;
+                }
+                else if(reg != IMMED){
+                    jc_bf.opcode = 30;
+                    jc_bf.reg = 1;
+                    jc_bf.address = reg-1;
+                }
+            }
+            if(strcmp(word, "la") == 0){
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg != SYM){
+                    err("error: no label given to la");
+                    return 0;
+                }
+                jc_bf.opcode = 31;
+                jc_bf.reg = 0;
+            }
+            if(strcmp(word, "call") == 0){
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
+                if(reg != SYM){
+                    err("error: no label given to call");
+                    return 0;
+                }
+                jc_bf.opcode = 32;
+                jc_bf.reg = 0;
+            }
+            if(strcmp(word, "call") == 0){
+                jc_bf.opcode = 63;
+                jc_bf.reg = 0;
+                jc_bf.address = 0;
+            }
             break;
         default:
             break;
