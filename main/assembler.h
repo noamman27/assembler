@@ -7,6 +7,7 @@
 #define WORD 4
 #define HALF_WORD 2
 #define SYM -1
+#define IMMED -2
 #define err(s) fprintf(stderr, s)
 static int lp;
 static nlist *macrotab[HASHSIZE];

@@ -14,6 +14,8 @@ int gettype(char *s, char *t);
 int isR(char *s);
 int isI(char *s);
 int isJ(char *s);
+int isnum(char *s);
+int getparam(char line[], int *lp, char sym[], int *immed);
 
 typedef struct {
     char *name;

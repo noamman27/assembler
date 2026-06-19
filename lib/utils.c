@@ -1,6 +1,8 @@
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
 #include "utils.h"
+#include "../main/assembler.h"
 
 /*list of r commands*/
 RCommand rCommands[] = {
@@ -106,4 +108,30 @@ int getword(char word[], char line[]){
 
     memmove(line, line + i, strlen(line + i) + 1);
     return i;
+}
+
+/*checks if given string *s represents a valid symble*/
+int validSym(char *s){
+    if(isdigit(*s)){
+        return 0;
+    }
+    s++;
+    while(*s)
+        ;
+    s--;
+    if(*s == ':'){
+        return 1;
+    }
+    return 0;
+}
+
+/*checks if given pointer represents a number*/
+int isnum(char *s){
+    while(*s){
+        if(!isdigit(*s)){
+            return 0;
+        }
+        s++;
+    }
+    return 1;
 }

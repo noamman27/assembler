@@ -26,16 +26,18 @@ int first_pass(FILE *input, FILE *output){
         if(word[len-1] == ':'){ /*check if last char of word is :, if so its a label*/
             word[len-1] = '\0';
             if(lookup_symble(word, NULL)){
-                fprintf(stderr, "label %s is already defined", word);
+                fprintf(stderr, "error: label %s is already defined", word);
             }
             if(lookup(word, macrotab)){
-                err("ERROR: a label cannot have the same name as a macro");
+                err("error: a label cannot have the same name as a macro");
             }
             isSym = 1;
+            continue;
         }
+        /*handle data instructions*/
         if(strcmp(word, ".dh") == 0 ) {
             if(isSym){
-                add_symble(word, DC, "data",NULL);
+                add_symble(word, DC, "data");
             }
             dp +=HALF_WORD;
             tmp = realloc(data_image, dp);
@@ -107,75 +109,100 @@ int first_pass(FILE *input, FILE *output){
             }
             data_image = tmp;
         }
+        if(strcmp(word, ".entry") == 0){
+            continue;
+        }
+        if(strcmp(word, ".extern") == 0){
+            if(!getword(word, line)){
+                err("error: no symble given as parameter for .extern");
+                return 0;
+            }
+            if(!validSym(word)){
+                err("symble given as parameter for .extern isnt valid");
+                return 0;
+            }
+            add_symble(word, 0, "external");
+        }
         if(!gettype(word,&type)){
-            err("ERROR: command not recognized");
+            err("error: command not recognized");
         }
         switch (type)
         {
         case 'r':
             if(param_count(word) == 2){
                 rc_bf.rs = 0;
-                reg = getreg(line);
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
                 if(reg == SYM){
                     continue;
                 }
-                else if(isdigit(reg)) {
-                    rc_bf.rs = reg;
+                rc_bf.rd = reg - 1;
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
                 }
-                else {
-                    err("register input error");
-                }
-                reg = getreg(line);
                 if(reg == SYM){
                     continue;
                 }
-                else if(isdigit(reg)) {
-                    rc_bf.rd = reg;
-                }
-                else {
-                    err("register input error");
-                }
-                reg = getreg(line);
-                if(reg == SYM){
-                    continue;
-                }
-                else if(isdigit(reg)) {
-                    rc_bf.rt = reg;
-                }
-                else {
-                    err("register input error");
-                }
+                rc_bf.rt = reg - 1;
                 if(!(rc_bf.opcode = getopcode(word))){
                     fprintf(stderr,"input error");
                     return 0;
                 }
             } else {
-                rc_bf.rs = 0;
-                reg = getreg(line);
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
+                }
                 if(reg == SYM){
                     continue;
                 }
-                else if(isdigit(reg)) {
-                    rc_bf.rd = reg;
+                rc_bf.rs = reg - 1;
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
                 }
-                else {
-                    err("register input error");
-                }
-                reg = getreg(line);
                 if(reg == SYM){
                     continue;
                 }
-                else if(isdigit(reg)) {
-                    rc_bf.rt = reg;
+                rc_bf.rd = reg - 1;
+                if(!(reg = getparam(line, lp, tmp, i))){
+                    return 0;
                 }
-                else {
-                    err("register input error");
+                if(reg == SYM){
+                    continue;
                 }
+                rc_bf.rt = reg - 1;
                 if(!(rc_bf.opcode = getopcode(word))){
-                    fprintf(stderr,"input error");
+                    /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
                     return 0;
                 }
             }
+            break;
+        case 'i':
+            if(!(reg = getparam(line, lp, tmp, i))){
+                return 0;
+            }
+            if(reg == SYM){
+                continue;
+            }
+            ic_bf.rs = reg - 1;
+            if(getparam(line, lp, tmp, i) != IMMED){
+                err("error: no immediate value given to i command");
+                return 0;
+            }
+            ic_bf.immed = i;
+            if(!(reg = getparam(line, lp, tmp, i))){
+                return 0;
+            }
+            if(reg == SYM){
+                continue;
+            }
+            ic_bf.rs = reg - 1;
+            if(!(ic_bf.opcode = getopcode(word))){
+                /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
+                return 0;
+            }
+            break;
+        case 'j':
             break;
         default:
             break;
@@ -201,25 +228,22 @@ int lookup_symble(const char *name, Symble **sp){
     return 0;
 }
 
-int add_symble(const char *name, int value, char *attribute, int *err_flag){
+int add_symble(const char *name, int value, char *attribute){
     Symble *existing = NULL;
 
     if(lookup_symbol(name, &existing)){                              
-        fprintf(stderr, "Error: symbol '%s' already defined\n", name);
-        *err_flag = 1;                                    
+        fprintf(stderr, "Error: symbol '%s' already defined\n", name);                                  
         return 0;               
     }                          
     Symble *s = malloc(sizeof(*s));
     if(!s){                                               
-        fprintf(stderr, "Error: malloc failed\n");        
-        *err_flag = 1;                                    
+        fprintf(stderr, "Error: malloc failed\n");                                       
         return 0;                                        
     }
     s->name  = strdup(name);  
     if(s->name == NULL){
         free(s);
         fprintf(stderr, "Error: malloc failed\n");
-        *err_flag = 1;
         return 0;
     }
     s->value = value;         
