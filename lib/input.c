@@ -51,23 +51,19 @@ int getparam(char line[], int *lp, char sym[], int *immed){
         return 0;
     }
     if(isdigit(c)){
-        tmp[0] = c;
-        while(isdigit(tmp[++i] = line[*lp++])){
-            if(lp > 80){
-                return 0;
-            }
-        }
+        /*parameter is an immediate value*/
+        tmp[0] = c; /*we start putting the digits into tmp and then use atoi to get the number*/
+        while(isdigit(tmp[++i] = line[*lp++]) && lp < 81) /*place chars into tmp while making sure we dont exceed the length of the line*/
+            ;
         tmp[i+1] = '\0';
         *immed = atoi(tmp);
         return IMMED;
     }
     if(isalpha(c)){
-        sym[0] = c;
-        while(!isspace(sym[++i] = line[*lp++])){
-            if(lp > 80){
-                return 0;
-            }
-        }
+        /*parameter is a label*/
+        sym[0] = c; /*start putting chars into sym*/
+        while(!isspace(sym[++i] = line[*lp++]) && lp < 81) /*place chars into sym while making sure we dont exceed the length of the line*/
+            ;
         sym[i+1] = '\0';
         return SYM;
     }
@@ -97,4 +93,20 @@ int ungetch(char buffer[], char c, int *lp){
     }
     buffer[*lp] = c;
     return 1;
+}
+/*puts the first word in line inside word. returns the length of the word*/
+int getword(char word[], char line[]){
+    int i = 0, j = 0;
+
+    while(line[i] != '\0' && isspace((unsigned char)line[i])){
+        i++;
+    }
+
+    while(line[i] != '\0' && !isspace((unsigned char)line[i])){
+        word[j++] = line[i++];
+    }
+    word[j] = '\0';
+
+    memmove(line, line + i, strlen(line + i) + 1);
+    return i;
 }

@@ -6,17 +6,17 @@
 #include <stdlib.h>
  
 static Symble *symbletab = NULL; /* head of the symbol table linked list */
-char *code_image, *data_image;
-static int cp = 0, dp = 0, IC = IC_START, DC = 0; /*code pointer*/
+char *code_image, *data_image; /*code image and data image*/
+static int cp = 0, dp = 0, lp = 0, IC = IC_START, DC = 0; /*code pointer, data pointer, line pointer, IC and DC*/
 
-int first_pass(FILE *input, FILE *output){
+int first_pass(FILE *input){
     char line[MAXLINE], word[MAXLINE], *tmp, type;
     int isSym = 0, len, i, reg, error = 0;
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
-    code_image = NULL;
-    data_image = NULL;
+    code_image = malloc(0);
+    data_image = malloc(0);
     lp = 0;
     while(fgets(line, MAXLINE, input) != NULL){
         if(line[0] == ';' || ((len = getword(word, line)) == 0)){
@@ -127,12 +127,13 @@ int first_pass(FILE *input, FILE *output){
         if(!gettype(word,&type)){
             err("error: command not recognized");
         }
+        /*handle encoding of commands*/
         switch (type)
         {
         case 'r':
             if(param_count(word) == 2){
                 rc_bf.rs = 0;
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -140,7 +141,7 @@ int first_pass(FILE *input, FILE *output){
                     error = 1;
                 }
                 rc_bf.rd = reg - 1;
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -151,21 +152,21 @@ int first_pass(FILE *input, FILE *output){
                 rc_bf.opcode = 1;
                 rc_bf.funct = getfunct(word);
             } else {
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
                     continue;
                 }
                 rc_bf.rs = reg - 1;
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
                     continue;
                 }
                 rc_bf.rd = reg - 1;
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -178,7 +179,7 @@ int first_pass(FILE *input, FILE *output){
             break;
         case 'i':
             if(isarithorlog(word)){
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -186,12 +187,12 @@ int first_pass(FILE *input, FILE *output){
                     error = 1;
                 }
                 ic_bf.rs = reg - 1;
-                if(getparam(line, lp, tmp, i) != IMMED){
+                if(getparam(line, &lp, tmp, &i) != IMMED){
                     err("error: no immediate value given to i command");
                     error = 1;
                 }
                 ic_bf.immed = i;
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -205,7 +206,7 @@ int first_pass(FILE *input, FILE *output){
                 }
             }
             if(iscond(word)){
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -213,7 +214,7 @@ int first_pass(FILE *input, FILE *output){
                     error = 1;
                 }
                 ic_bf.rs = reg - 1;
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -221,7 +222,7 @@ int first_pass(FILE *input, FILE *output){
                     error = 1;
                 }
                 ic_bf.rt = reg - 1;
-                if(getparam(line, lp, tmp, i) != SYM){
+                if(getparam(line, &lp, tmp, &i) != SYM){
                     err("error: no immediate value given to i command");
                     error = 1;
                 }
@@ -232,7 +233,7 @@ int first_pass(FILE *input, FILE *output){
                 }
             }
             if(isloading(word)){
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -240,7 +241,7 @@ int first_pass(FILE *input, FILE *output){
                     error = 1;
                 }
                 ic_bf.rs = reg - 1;
-                if(getparam(line, lp, tmp, i) != IMMED){
+                if(getparam(line, &lp, tmp, &i) != IMMED){
                     err("error: no immediate value given to i command");
                     error = 1;
                 }
@@ -249,7 +250,7 @@ int first_pass(FILE *input, FILE *output){
                     error = 1;
                 }
                 ic_bf.immed = i;
-                if(!(reg = getparam(line, lp, tmp, i))){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -264,8 +265,8 @@ int first_pass(FILE *input, FILE *output){
             }
             break;
         case 'j':
-            if(strcmp(word, "jmp") == 0){
-                if(!(reg = getparam(line, lp, tmp, i))){
+        if(strcmp(word, "jmp") == 0){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg == SYM){
@@ -278,8 +279,8 @@ int first_pass(FILE *input, FILE *output){
                     jc_bf.address = reg-1;
                 }
             }
-            if(strcmp(word, "la") == 0){
-                if(!(reg = getparam(line, lp, tmp, i))){
+        else if(strcmp(word, "la") == 0){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg != SYM){
@@ -289,8 +290,8 @@ int first_pass(FILE *input, FILE *output){
                 jc_bf.opcode = 31;
                 jc_bf.reg = 0;
             }
-            if(strcmp(word, "call") == 0){
-                if(!(reg = getparam(line, lp, tmp, i))){
+        else if(strcmp(word, "call") == 0){
+                if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
                 if(reg != SYM){
@@ -300,7 +301,7 @@ int first_pass(FILE *input, FILE *output){
                 jc_bf.opcode = 32;
                 jc_bf.reg = 0;
             }
-            if(strcmp(word, "call") == 0){
+        else if(strcmp(word, "halt") == 0){
                 jc_bf.opcode = 63;
                 jc_bf.reg = 0;
                 jc_bf.address = 0;
@@ -311,11 +312,11 @@ int first_pass(FILE *input, FILE *output){
         }
     }
     if(error){
+        err("errors detected in first pass - assembly will not continue");
         return 0;
     }
     return 1;
 }
-
 
 int lookup_symble(const char *name, Symble **sp){
     Symble *s = symbletab;
@@ -347,12 +348,12 @@ int add_symble(const char *name, int value, char *attribute){
     s->name  = strdup(name);  
     if(s->name == NULL){
         free(s);
-        fprintf(stderr, "Error: malloc failed\n");
+        err("error: malloc failed");
         return 0;
     }
-    s->value = value;         
-    s->attribute  = attribute;          
-    s->next  = symbletab;   
-    symbletab   = s; 
-    return 1;                
+    s->value = value;
+    s->attribute = attribute;
+    s->next = symbletab;
+    symbletab = s;
+    return 1;
 }

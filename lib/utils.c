@@ -93,22 +93,6 @@ int isJ(char *s){
     }
     return 0;
 }
-/*puts the first word in line inside word. returns the length of the word*/
-int getword(char word[], char line[]){
-    int i = 0, j = 0;
-
-    while(line[i] != '\0' && isspace((unsigned char)line[i])){
-        i++;
-    }
-
-    while(line[i] != '\0' && !isspace((unsigned char)line[i])){
-        word[j++] = line[i++];
-    }
-    word[j] = '\0';
-
-    memmove(line, line + i, strlen(line + i) + 1);
-    return i;
-}
 
 /*checks if given string *s represents a valid symble*/
 int validSym(char *s){

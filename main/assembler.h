@@ -8,7 +8,7 @@
 #define HALF_WORD 2
 #define SYM -1
 #define IMMED -2
-#define err(s) fprintf(stderr, s)
+#define err(s) fprintf(stderr, strcat(s,"\n"))
 static int lp;
 static nlist *macrotab[HASHSIZE];
 int pre_assemble(FILE *f, FILE *write);
