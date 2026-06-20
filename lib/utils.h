@@ -16,6 +16,11 @@ int isI(char *s);
 int isJ(char *s);
 int isnum(char *s);
 int getparam(char line[], int *lp, char sym[], int *immed);
+int isarithorlog(char *s);
+int iscond(char *s);
+int isloading(char *s);
+int getopcode(char *s);
+int getfunct(char *s);
 
 typedef struct {
     char *name;

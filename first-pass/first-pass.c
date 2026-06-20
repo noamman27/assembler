@@ -11,7 +11,7 @@ static int cp = 0, dp = 0, IC = IC_START, DC = 0; /*code pointer*/
 
 int first_pass(FILE *input, FILE *output){
     char line[MAXLINE], word[MAXLINE], *tmp, type;
-    int isSym = 0, len, i, reg;
+    int isSym = 0, len, i, reg, error = 0;
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
@@ -43,7 +43,7 @@ int first_pass(FILE *input, FILE *output){
             tmp = realloc(data_image, dp);
             if(!tmp){
                 err("realloc error");
-                return 0;
+                error = 1;
             }
             data_image = tmp;
             for(i = dp - HALF_WORD; i<=dp; i++){
@@ -58,7 +58,7 @@ int first_pass(FILE *input, FILE *output){
             tmp = realloc(data_image, dp);
             if(!tmp){
                 err("realloc error");
-                return 0;
+                error = 1;
             }
             data_image = tmp;
             if(getword(word, line) == 1){
@@ -70,7 +70,7 @@ int first_pass(FILE *input, FILE *output){
             tmp = realloc(data_image, dp);
             if(!tmp){
                 err("realloc error");
-                return 0;
+                error = 1;
             }
             data_image = tmp;
             for(i = dp - WORD; i<=dp; i++){
@@ -88,7 +88,7 @@ int first_pass(FILE *input, FILE *output){
                     tmp = realloc(data_image, dp);
                     if(!tmp){
                         err("realloc error");
-                        return 0;
+                        error = 1;
                     }
                     data_image = tmp;
                     data_image[dp] = (char) atoi(word);
@@ -97,7 +97,7 @@ int first_pass(FILE *input, FILE *output){
                 tmp = realloc(data_image, dp);
                 if(!tmp){
                     err("realloc error");
-                    return 0;
+                    error = 1;
                 }
                 data_image = tmp;
                 data_image[dp] = '\0';
@@ -105,21 +105,22 @@ int first_pass(FILE *input, FILE *output){
             tmp = realloc(data_image, dp);
             if(!tmp){
                 err("realloc error");
-                return 0;
+                error = 1;
             }
             data_image = tmp;
         }
+        /*handle .entry and .extern*/
         if(strcmp(word, ".entry") == 0){
             continue;
         }
         if(strcmp(word, ".extern") == 0){
             if(!getword(word, line)){
                 err("error: no symble given as parameter for .extern");
-                return 0;
+                error = 1;
             }
             if(!validSym(word)){
                 err("symble given as parameter for .extern isnt valid");
-                return 0;
+                error = 1;
             }
             add_symble(word, 0, "external");
         }
@@ -132,138 +133,140 @@ int first_pass(FILE *input, FILE *output){
             if(param_count(word) == 2){
                 rc_bf.rs = 0;
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: a symble cannot be given as a parameter to a move command");
-                    return 0;
+                    error = 1;
                 }
                 rc_bf.rd = reg - 1;
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: a symble cannot be given as a parameter to a move command");
-                    return 0;
+                    error = 1;
                 }
                 rc_bf.rt = reg - 1;
                 rc_bf.opcode = 1;
+                rc_bf.funct = getfunct(word);
             } else {
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     continue;
                 }
                 rc_bf.rs = reg - 1;
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     continue;
                 }
                 rc_bf.rd = reg - 1;
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     continue;
                 }
                 rc_bf.rt = reg - 1;
                 rc_bf.opcode = 0;
+                rc_bf.funct = getfunct(word);
             }
             break;
         case 'i':
             if(isarithorlog(word)){
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: a label cannot be given as a parameter to an arithmatric or logical command");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.rs = reg - 1;
                 if(getparam(line, lp, tmp, i) != IMMED){
                     err("error: no immediate value given to i command");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.immed = i;
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: a label cannot be given as a parameter to an arithmatric or logical command");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.rt = reg - 1;
                 if(!(ic_bf.opcode = getopcode(word))){
                     /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
-                    return 0;
+                    error = 1;
                 }
             }
             if(iscond(word)){
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: the first and second parameters of a conditional command must be registers");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.rs = reg - 1;
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: the first and second parameters of a conditional command must be registers");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.rt = reg - 1;
                 if(getparam(line, lp, tmp, i) != SYM){
                     err("error: no immediate value given to i command");
-                    return 0;
+                    error = 1;
                 }
                 /*prolly need to add tmp to code image*/
                 if(!(ic_bf.opcode = getopcode(word))){
                     /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
-                    return 0;
+                    error = 1;
                 }
             }
             if(isloading(word)){
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: a label cannot be given as a parameter to an arithmatric or logical command");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.rs = reg - 1;
                 if(getparam(line, lp, tmp, i) != IMMED){
                     err("error: no immediate value given to i command");
-                    return 0;
+                    error = 1;
                 }
                 if(i < -16 || i > 16){
                     err("error: cannot offset by more than 16 bits");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.immed = i;
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     err("error: a label cannot be given as a parameter to an arithmatric or logical command");
-                    return 0;
+                    error = 1;
                 }
                 ic_bf.rt = reg - 1;
                 if(!(ic_bf.opcode = getopcode(word))){
                     /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
-                    return 0;
+                    error = 1;
                 }
             }
             break;
         case 'j':
             if(strcmp(word, "jmp") == 0){
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg == SYM){
                     jc_bf.opcode = 30;
@@ -277,22 +280,22 @@ int first_pass(FILE *input, FILE *output){
             }
             if(strcmp(word, "la") == 0){
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg != SYM){
                     err("error: no label given to la");
-                    return 0;
+                    error = 1;
                 }
                 jc_bf.opcode = 31;
                 jc_bf.reg = 0;
             }
             if(strcmp(word, "call") == 0){
                 if(!(reg = getparam(line, lp, tmp, i))){
-                    return 0;
+                    error = 1;
                 }
                 if(reg != SYM){
                     err("error: no label given to call");
-                    return 0;
+                    error = 1;
                 }
                 jc_bf.opcode = 32;
                 jc_bf.reg = 0;
@@ -306,7 +309,9 @@ int first_pass(FILE *input, FILE *output){
         default:
             break;
         }
-
+    }
+    if(error){
+        return 0;
     }
     return 1;
 }
@@ -332,8 +337,8 @@ int add_symble(const char *name, int value, char *attribute){
 
     if(lookup_symbol(name, &existing)){                              
         fprintf(stderr, "Error: symbol '%s' already defined\n", name);                                  
-        return 0;               
-    }                          
+        return 0;
+    }              
     Symble *s = malloc(sizeof(*s));
     if(!s){                                               
         fprintf(stderr, "Error: malloc failed\n");                                       

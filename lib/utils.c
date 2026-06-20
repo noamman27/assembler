@@ -135,3 +135,47 @@ int isnum(char *s){
     }
     return 1;
 }
+
+int count_params(char *s){
+    if(!isR(s)){
+        return 0;
+    }
+    if(strcmp(s,"move") == 0 || strcmp(s,"mvhi") == 0 || strcmp(s,"mvlo") == 0){
+        return 2;
+    }
+    else{
+        return 3;
+    }
+}
+
+int isarithorlog(char *s){
+    return strcmp(s,"addi") == 0 || strcmp(s,"subi") == 0 || strcmp(s,"andi") == 0 || strcmp(s,"ori") == 0 || strcmp(s,"nori") == 0;
+}
+
+int iscond(char *s){
+    return strcmp(s,"beq") == 0 || strcmp(s,"bne") == 0 || strcmp(s,"blt") == 0 || strcmp(s,"bgt") == 0;
+}
+
+int isloading(char *s){
+    return strcmp(s,"lb") == 0 || strcmp(s,"sb") == 0 || strcmp(s,"lw") == 0 || strcmp(s,"sw") == 0 || strcmp(s,"lh") == 0 || strcmp(s,"sh") == 0;
+}
+
+int getopcode(char *s){
+    int i = 0;
+    if(!isI(s)){
+        return 0;
+    }
+    while(strcmp(s,iCommands[i++].name))
+        ;
+    return iCommands[i-1].opcode;
+}
+
+int getfunct(char *s){
+    int i = 0;
+    if(!isR(s)){
+        return 0;
+    }
+    while(strcmp(s,rCommands[i++].name))
+        ;
+    return rCommands[i-1].funct;
+}
