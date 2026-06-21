@@ -120,6 +120,7 @@ int isnum(char *s){
     return 1;
 }
 
+/*reutrns the amount of parameters for a given r command*/
 int count_params(char *s){
     if(!isR(s)){
         return 0;
@@ -132,34 +133,43 @@ int count_params(char *s){
     }
 }
 
+/*checks if a given command is an arithmatic or logical i command*/
 int isarithorlog(char *s){
     return strcmp(s,"addi") == 0 || strcmp(s,"subi") == 0 || strcmp(s,"andi") == 0 || strcmp(s,"ori") == 0 || strcmp(s,"nori") == 0;
 }
 
+/*checks if a given command is a conditional i command*/
 int iscond(char *s){
     return strcmp(s,"beq") == 0 || strcmp(s,"bne") == 0 || strcmp(s,"blt") == 0 || strcmp(s,"bgt") == 0;
 }
 
+/*checks if a given command is a memory loading i command*/
 int isloading(char *s){
     return strcmp(s,"lb") == 0 || strcmp(s,"sb") == 0 || strcmp(s,"lw") == 0 || strcmp(s,"sw") == 0 || strcmp(s,"lh") == 0 || strcmp(s,"sh") == 0;
 }
 
+/*returns the opcode of given comand*/
 int getopcode(char *s){
-    int i = 0;
-    if(!isI(s)){
-        return 0;
+    int i;
+    for(i = 0; i < sizeof(iCommands)/sizeof(iCommands[0]); i++){
+        /*look for s in iCommands*/
+        if(strcmp(iCommands[i].name, s)){
+            /*when found we return the opcode*/
+            return iCommands[i].opcode;
+        }
     }
-    while(strcmp(s,iCommands[i++].name))
-        ;
-    return iCommands[i-1].opcode;
+    return 0;
 }
 
+/*returns the funct of a given command*/
 int getfunct(char *s){
-    int i = 0;
-    if(!isR(s)){
-        return 0;
+    int i;
+    for(i = 0; i < sizeof(rCommands)/sizeof(rCommands[0]); i++){
+        /*look for s in rCommands*/
+        if(strcmp(rCommands[i].name, s)){
+            /*when found we return the funct*/
+            return rCommands[i].funct;
+        }
     }
-    while(strcmp(s,rCommands[i++].name))
-        ;
-    return rCommands[i-1].funct;
+    return 0;
 }

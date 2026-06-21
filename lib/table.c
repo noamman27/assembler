@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "utils.h"
+#include "../main/assembler.h"
 
 /*returns a hashed version of s in hashtab*/
 unsigned hash(char *s, nlist *hashtab[]){
@@ -48,4 +49,44 @@ nlist *install(char *name, char *defn, nlist *hashtab[]){
         }
     }
     return np;
+}
+
+int add_symble(const char *name, int value, char *attribute, Symble *symbletab){
+    Symble *existing = NULL;
+
+    if(lookup_symbol(name, &existing)){                              
+        fprintf(stderr, "Error: symbol '%s' already defined\n", name);                                  
+        return 0;
+    }              
+    Symble *s = malloc(sizeof(*s));
+    if(!s){                                               
+        fprintf(stderr, "Error: malloc failed\n");                                       
+        return 0;                                        
+    }
+    s->name  = strdup(name);  
+    if(s->name == NULL){
+        free(s);
+        err("error: malloc failed");
+        return 0;
+    }
+    s->value = value;
+    s->attribute = attribute;
+    s->next = symbletab;
+    symbletab = s;
+    return 1;
+}
+
+int lookup_symble(const char *name, Symble **sp, Symble *symbletab){
+    Symble *s = symbletab;
+
+    while(s){
+        if(strcmp(s->name, name) == 0){
+            if(sp != NULL){
+                *sp = s;
+            }
+            return 1;
+        }
+        s = s->next;
+    }
+    return 0;
 }

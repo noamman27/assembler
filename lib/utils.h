@@ -9,6 +9,8 @@ typedef struct nlist {
 unsigned hash(char *s, nlist *hashtab[]);
 nlist *lookup(char *s, nlist *hashtab[]);
 nlist *install(char *name, char *defn, nlist *hashtab[]);
+int add_symble(const char *name, int value, char *attribute, Symble *symbletab);
+int lookup_symble(const char *name, Symble **sp, Symble *symbletab);
 int getword(char word[], char line[]);
 int gettype(char *s, char *t);
 int isR(char *s);
