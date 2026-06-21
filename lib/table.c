@@ -76,17 +76,22 @@ int add_symble(const char *name, int value, char *attribute, Symble *symbletab){
     return 1;
 }
 
-int lookup_symble(const char *name, Symble **sp, Symble *symbletab){
-    Symble *s = symbletab;
-
-    while(s){
+Symble *lookup_symble(char *name, Symble *symbletab){
+    Symble *s = symbletab;               /* start at head of list */
+    while(s){                         /* walk the list */
         if(strcmp(s->name, name) == 0){
-            if(sp != NULL){
-                *sp = s;
-            }
-            return 1;
+           return s; /* found - return pointer to node */ 
         }
-        s = s->next;
+        s = s->next;                  /* move to next node */
     }
-    return 0;
+    return NULL;                      /* name not found */
+}
+
+void update_data_symbols(int icf, Symble *symbletab){
+    Symble *s = symbletab;               /* start at head of list */
+    while(s){                         /* walk every symbol */
+        if(strcmp(s->attribute, "data") == 0)       /* only update data symbols */
+            s->value += icf;          /* shift value by ICF so it points to correct memory location */
+        s = s->next;                  /* move to next node */
+    }
 }

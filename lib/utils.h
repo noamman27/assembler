@@ -10,7 +10,7 @@ unsigned hash(char *s, nlist *hashtab[]);
 nlist *lookup(char *s, nlist *hashtab[]);
 nlist *install(char *name, char *defn, nlist *hashtab[]);
 int add_symble(const char *name, int value, char *attribute, Symble *symbletab);
-int lookup_symble(const char *name, Symble **sp, Symble *symbletab);
+int lookup_symble(const char *name, Symble *symbletab);
 int getword(char word[], char line[]);
 int gettype(char *s, char *t);
 int isR(char *s);
@@ -23,6 +23,7 @@ int iscond(char *s);
 int isloading(char *s);
 int getopcode(char *s);
 int getfunct(char *s);
+void remove_quotes(char *s);
 
 typedef struct {
     char *name;

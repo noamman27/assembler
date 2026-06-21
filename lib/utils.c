@@ -94,21 +94,6 @@ int isJ(char *s){
     return 0;
 }
 
-/*checks if given string *s represents a valid symble*/
-int validSym(char *s){
-    if(isdigit(*s)){
-        return 0;
-    }
-    s++;
-    while(*s)
-        ;
-    s--;
-    if(*s == ':'){
-        return 1;
-    }
-    return 0;
-}
-
 /*checks if given pointer represents a number*/
 int isnum(char *s){
     while(*s){
@@ -153,7 +138,7 @@ int getopcode(char *s){
     int i;
     for(i = 0; i < sizeof(iCommands)/sizeof(iCommands[0]); i++){
         /*look for s in iCommands*/
-        if(strcmp(iCommands[i].name, s)){
+        if(strcmp(iCommands[i].name, s) == 0){
             /*when found we return the opcode*/
             return iCommands[i].opcode;
         }
@@ -172,4 +157,16 @@ int getfunct(char *s){
         }
     }
     return 0;
+}
+
+void remove_quotes(char *s){
+    int i = 0;
+    int j = 0;
+    while(s[i]){
+        if(s[i] != '"'){
+            s[j++] = s[i];
+        }
+        i++;
+    }
+    s[j] = '\0';
 }
