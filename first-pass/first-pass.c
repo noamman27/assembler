@@ -15,12 +15,12 @@ int first_pass(FILE *input){
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
-    lp = 0;
-    while(fgets(line, MAXLINE, input) != NULL){
-        if(line[0] == ';' || ((len = getword(word, line)) == 0)){
+    while(fgets(line, MAXLINE, input) != NULL){ /*run while we can read more from file*/
+        lp = 0; /*reset line pointer*/
+        if(line[0] == ';' || ((len = getword(word, line,lp)) == 0)){ /*check if line is omment or empty; if so we ignore it*/
             continue;
         }
-        lp = len;
+        lp = len; /*set line pointer to len since that is how much*/
         /*check if last char of word is :, if so its a label*/
         if(word[len-1] == ':'){ 
             word[len-1] = '\0';
@@ -41,11 +41,11 @@ int first_pass(FILE *input){
             }
             isSym = 1;
             *sym = *word;
-            getword(word, line);
+            getword(word, line, lp);
         }
         /*handle data instructions*/
         if(strcmp(word, ".dh") == 0 ) {
-            if(!getword(word, line)){
+            if(!getword(word, line, lp)){
                 err("error: no value given to .dh");
                 error = 1;
                 continue;
@@ -61,12 +61,12 @@ int first_pass(FILE *input){
                 add_symble(sym, DC, "data", symbletab);
                 continue;
             }
-            getword(word,line);
+            getword(word, line, lp);
             data_image[DC] = word;
             continue;
         }
         else if(strcmp(word, ".db") == 0){
-            if(!getword(word, line)){
+            if(!getword(word, line, lp)){
                 err("error: no value given to .db");
                 error = 1;
                 continue;
@@ -85,7 +85,7 @@ int first_pass(FILE *input){
             
         }
         else if(strcmp(word, ".dw") == 0){
-            if(!getword(word, line)){
+            if(!getword(word, line, lp)){
                 err("error: no value given to .dw");
                 error = 1;
                 continue;
@@ -103,7 +103,7 @@ int first_pass(FILE *input){
             data_image[DC] = word;
         }
         else if(strcmp(word, ".asciz") == 0){
-            if(!(len = getword(word, line))){
+            if(!(len = getword(word, line, lp))){
                 err("error: no string given to .asciz");
                 error = 1;
                 continue;
@@ -139,7 +139,7 @@ int first_pass(FILE *input){
             continue;
         }
         if(strcmp(word, ".extern") == 0){
-            if(!getword(word, line)){
+            if(!getword(word, line, lp)){
                 err("error: no symble given as parameter for .extern");
                 error = 1;
                 continue;
@@ -219,7 +219,7 @@ int first_pass(FILE *input){
                 rc_bf.opcode = 0;
                 rc_bf.funct = getfunct(word);
             }
-            memcpy(&data_image[IC], &rc_bf, sizeof(rc_bf));
+            memcpy(&data_image[IC], &rc_bf, sizeof(rc_bf)); /*add to code image*/
             break;
         case 'i':
             if(isarithorlog(word)){
@@ -307,7 +307,7 @@ int first_pass(FILE *input){
                     error = 1;
                 }
             }
-            memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf));
+            memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'j':
             if(strcmp(word, "jmp") == 0){
@@ -351,7 +351,7 @@ int first_pass(FILE *input){
                 jc_bf.reg = 0;
                 jc_bf.address = 0;
             }
-            memcpy(&data_image[IC], &jc_bf, sizeof(jc_bf));
+            memcpy(&data_image[IC], &jc_bf, sizeof(jc_bf)); /*add to code image*/
             break;
         default:
             break;

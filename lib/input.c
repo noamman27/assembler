@@ -22,7 +22,7 @@ int getparam(char line[], int *lp, char sym[], int *immed){
         return 0;
     }
     if(c == "$"){ /*if first char is $ we have a register*/
-        if(!(getword(param,line))){ /*get the register name using getword*/
+        if(!(getword(param,line,lp))){ /*get the register name using getword*/
             err("error: incomplete register"); /*if none is given we signal an error*/
             return 0;
         }
@@ -98,9 +98,9 @@ int ungetch(char buffer[], char c, int *lp){
     buffer[*lp] = c;
     return 1;
 }
-/*puts the first word in line inside word. returns the length of the word*/
-int getword(char word[], char line[]){
-    int i = 0, j = 0;
+/*puts the first word after lp in line inside word. returns the length of the word and updated lp*/
+int getword(char word[], char line[], int *lp){
+    int i = *lp, j = 0;
 
     while(line[i] != '\0' && isspace((unsigned char)line[i])){
         i++;
@@ -112,5 +112,6 @@ int getword(char word[], char line[]){
     word[j] = '\0';
 
     memmove(line, line + i, strlen(line + i) + 1);
+    *lp += i;
     return i;
 }

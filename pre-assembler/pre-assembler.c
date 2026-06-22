@@ -34,6 +34,7 @@ static int append_text(char **buffer, size_t *capacity, size_t *length, const ch
 int pre_assemble(FILE *f, FILE *write){
     char line[MAXLINE], word[MAXLINE], macroName[MAXLINE];
     char *macroContent = NULL;
+    int *lp = 0;
     size_t macroContentCap = 0;
     size_t macroContentLen = 0;
     char commandType;
@@ -41,14 +42,15 @@ int pre_assemble(FILE *f, FILE *write){
     int mcro, line_count = 0; /*initialize mcro flag and line count that is set to 0*/
     nlist *np; 
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
-        getword(word, line); /*get the first word and put it in word*/
+        *lp = 0;
+        getword(word, line, lp); /*get the first word and put it in word*/
         if((np = lookup(word,macrotab))){ /*if first word is a macro name*/
             fputs(np->defn, write); /*write the content of the macro to the file*/
             continue; 
         }
         hashed = hash(word, macrotab); /*hash the word in macrotab*/
         if(hashed == hash("mcro", macrotab)){ /*if first word is a macro decleration*/
-            getword(macroName, line); /*place the next word in macroName*/
+            getword(macroName, line, lp); /*place the next word in macroName*/
             if(gettype(macroName, &commandType)){
                 fprintf(stderr, "a macro cannot have the same name as a command");
                 return 0;
@@ -56,7 +58,7 @@ int pre_assemble(FILE *f, FILE *write){
             if(!lookup(macroName, macrotab)){ /*make sure new macro isnt already defined*/
                 mcro=1; /*we set mcro flag to 1*/
                 while(fgets(line, MAXLINE, f)){ /*and start another loop to get the content of the macro*/ 
-                    getword(word,line); /*we get the first word in word*/
+                    getword(word,line, lp); /*we get the first word in word*/
                     if(word[0] == '\0' || strcmp(word, "mcroend") == 0){
                         install(macroName, macroContent, macrotab); /*add the macro to macrotab*/
                         line_count = 0; /*reset line count*/
