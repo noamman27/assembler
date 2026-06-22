@@ -65,6 +65,10 @@ int getparam(char line[], int *lp, char sym[], int *immed){
         while(!isspace(sym[++i] = line[*lp++]) && lp < 81) /*place chars into sym while making sure we dont exceed the length of the line*/
             ;
         sym[i+1] = '\0';
+        if(gettype(sym, tmp)){
+            err("error: a label cannot habe the same name as a command");
+            return 0;
+        }
         return SYM;
     }
 }

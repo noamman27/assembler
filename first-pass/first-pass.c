@@ -26,9 +26,18 @@ int first_pass(FILE *input){
             word[len-1] = '\0';
             if(lookup_symble(word, NULL, symbletab)){
                 fprintf(stderr, "error: label %s is already defined", word);
+                error = 1;
+                continue;
             }
             if(lookup(word, macrotab)){
                 err("error: a label cannot have the same name as a macro");
+                error = 1;
+                continue;
+            }
+            if(gettype(word, tmp)){
+                err("error: a label cannot habe the same name as a command");
+                error = 1;
+                continue;
             }
             isSym = 1;
             *sym = *word;
@@ -140,6 +149,11 @@ int first_pass(FILE *input){
                 error = 1;
                 continue;
             }
+            if(gettype(word, tmp)){
+                err("error: a label cannot habe the same name as a command");
+                error = 1;
+                continue;
+            }
             if(lookup_symble(word, &sp, symbletab) && strcmp(sp->attribute, "external")){
                 fprintf(stderr,"error: label %s already defined not as external", word);
                 error = 1;
@@ -182,6 +196,7 @@ int first_pass(FILE *input){
                     error = 1;
                 }
                 if(reg == SYM){
+                    rc_bf.rs = 0;
                     continue;
                 }
                 rc_bf.rs = reg - 1;
@@ -189,6 +204,7 @@ int first_pass(FILE *input){
                     error = 1;
                 }
                 if(reg == SYM){
+                    rc_bf.rd = 0;
                     continue;
                 }
                 rc_bf.rd = reg - 1;
@@ -196,12 +212,14 @@ int first_pass(FILE *input){
                     error = 1;
                 }
                 if(reg == SYM){
+                    rc_bf.rt = 0;
                     continue;
                 }
                 rc_bf.rt = reg - 1;
                 rc_bf.opcode = 0;
                 rc_bf.funct = getfunct(word);
             }
+            memcpy(&data_image[IC], &rc_bf, sizeof(rc_bf));
             break;
         case 'i':
             if(isarithorlog(word)){
@@ -235,7 +253,7 @@ int first_pass(FILE *input){
                 if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
-                if(reg == SYM){
+                if(reg == SYM || reg == IMMED){
                     err("error: the first and second parameters of a conditional command must be registers");
                     error = 1;
                 }
@@ -243,7 +261,7 @@ int first_pass(FILE *input){
                 if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
                 }
-                if(reg == SYM){
+                if(reg == SYM || reg == IMMED){
                     err("error: the first and second parameters of a conditional command must be registers");
                     error = 1;
                 }
@@ -289,6 +307,7 @@ int first_pass(FILE *input){
                     error = 1;
                 }
             }
+            memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf));
             break;
         case 'j':
             if(strcmp(word, "jmp") == 0){
@@ -332,9 +351,15 @@ int first_pass(FILE *input){
                 jc_bf.reg = 0;
                 jc_bf.address = 0;
             }
+            memcpy(&data_image[IC], &jc_bf, sizeof(jc_bf));
             break;
         default:
             break;
+        }
+        if(IC + 4 >= MAX_CODE){
+            err("error: IC is too large. ending first pass of assembly");
+            error = 1;
+            return 0;
         }
         IC+=4;
     }
@@ -344,5 +369,6 @@ int first_pass(FILE *input){
     }
     ICF = IC;
     DCF = DC;
+    update_data_symbles(ICF, symbletab);
     return 1;
 }

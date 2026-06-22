@@ -87,7 +87,7 @@ Symble *lookup_symble(char *name, Symble *symbletab){
     return NULL;                      /* name not found */
 }
 
-void update_data_symbols(int icf, Symble *symbletab){
+void update_data_symbles(int icf, Symble *symbletab){
     Symble *s = symbletab;               /* start at head of list */
     while(s){                         /* walk every symbol */
         if(strcmp(s->attribute, "data") == 0)       /* only update data symbols */
