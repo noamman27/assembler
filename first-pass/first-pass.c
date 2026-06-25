@@ -6,123 +6,126 @@
 #include <stdlib.h>
 
 static Symble *symbletab = NULL, *sp; /* head of the symbol table linked list */
-int code_image[MAX_CODE], data_image[MAX_DATA]; /*code image and data image*/
-static int cp = 0, lp = 0, IC = IC_START, DC = 0, ICF, DCF; /*code pointer, data pointer, line pointer, IC and DC*/
+int *code_image, *data_image, *tmpint; /*code image, data image and tmpint - a temporary int pointer (im a software engineer so I cant name things well)*/
+static int lp = 0, IC = IC_START, DC = 0, ICF, DCF; /*line pointer, IC and DC*/
 
 int first_pass(FILE *input){
-    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type;
-    int isSym = 0, len, i, reg, error = 0;
-    R_BF rc_bf;
+    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type; /*char arrays to represent the whole line, a word in that line, the symble being defined in that line, a temporary pointer for realloc, and type of command*/
+    int isSym = 0, len, i, reg, error = 0; /*flag to say if a symble is being defined, length of word, value of register, index, and error flag*/
+    R_BF rc_bf; /*bitfields for all commands*/
     I_BF ic_bf;
     J_BF jc_bf;
+    code_image = malloc(0), data_image = malloc(0); /*initialize code and data image with malloc 0 (we could start off with some value but I dont want to deal with that, so whenever we add anything to these we realloc them)*/
     while(fgets(line, MAXLINE, input) != NULL){ /*run while we can read more from file*/
-        lp = 0; /*reset line pointer*/
+        lp = 0, isSym = 0; /*reset line pointer and isSym flag*/
         if(line[0] == ';' || ((len = getword(word, line,lp)) == 0)){ /*check if line is omment or empty; if so we ignore it*/
             continue;
         }
         lp = len; /*set line pointer to len since that is how much*/
-        /*check if last char of word is :, if so its a label*/
+        /*check if last char of word is :, if so its a label definition*/
         if(word[len-1] == ':'){ 
-            word[len-1] = '\0';
-            if(lookup_symble(word, NULL, symbletab)){
+            word[len-1] = '\0'; /*remove the : from the label*/
+            if(lookup_symble(word, NULL, symbletab)){ /*check if label is already defined*/
                 fprintf(stderr, "error: label %s is already defined", word);
                 error = 1;
                 continue;
             }
-            if(lookup(word, macrotab)){
+            if(lookup(word, macrotab)){ /*check if label was already defined as a macro*/
                 err("error: a label cannot have the same name as a macro");
                 error = 1;
                 continue;
             }
-            if(gettype(word, tmp)){
+            if(gettype(word, tmp)){ /*check if label name is a command*/
                 err("error: a label cannot habe the same name as a command");
                 error = 1;
                 continue;
             }
-            isSym = 1;
-            *sym = *word;
-            getword(word, line, lp);
+            isSym = 1; /*toggle sym flag*/
+            *sym = *word; /*save label name isn sym*/
+            getword(word, line, lp); /*and get the next word*/
         }
         /*handle data instructions*/
         if(strcmp(word, ".dh") == 0 ) {
-            if(!getword(word, line, lp)){
+            DC += HALF_WORD; /*add half word to DC*/
+            if(!getword(word, line, lp)){ /*make sure we get an argument*/
                 err("error: no value given to .dh");
                 error = 1;
                 continue;
             }
-            if(DC + HALF_WORD > MAX_DATA){
-                err("error: data image is too large");
+            if(isSym){ /*if a label is being defined we add it as data*/
+                add_symble(sym, DC, "data", symbletab);
+            }
+            if(lookup_symble(word, symbletab)){
+                continue;
+            }
+            *tmpint = realloc(data_image, DC);
+            if(!tmpint){
+                err("error: realloc failed");
                 error = 1;
                 continue;
             }
-            DC +=HALF_WORD;
-            if(isSym){
-                /*we already checked that the label is valid so we can just add it*/
-                add_symble(sym, DC, "data", symbletab);
-                continue;
-            }
-            getword(word, line, lp);
+            data_image = tmpint;
             data_image[DC] = word;
             continue;
         }
         else if(strcmp(word, ".db") == 0){
-            if(!getword(word, line, lp)){
-                err("error: no value given to .db");
+            DC += 1; /*add a bit to DC*/
+            if(!getword(word, line, lp)){ /*make sure we get an argument*/
+                err("error: no value given to .dh");
                 error = 1;
                 continue;
             }
-            if(DC + 1 > MAX_DATA){
-                err("error: data image is too large");
-                error = 1;
-                continue;
-            }
-            DC+= 1;
-            if(isSym){
+            if(isSym){ /*if a label is being defined we add it as data*/
                 add_symble(sym, DC, "data", symbletab);
+            }
+            if(lookup_symble(word, symbletab)){
                 continue;
             }
+            *tmpint = realloc(data_image, DC);
+            if(!tmpint){
+                err("error: realloc failed");
+                error = 1;
+                continue;
+            }
+            data_image = tmpint;
             data_image[DC] = word;
-            
+            continue;
         }
         else if(strcmp(word, ".dw") == 0){
-            if(!getword(word, line, lp)){
-                err("error: no value given to .dw");
+            DC += WORD; /*add half word to DC*/
+            if(!getword(word, line, lp)){ /*make sure we get an argument*/
+                err("error: no value given to .dh");
                 error = 1;
                 continue;
             }
-            if(DC + WORD > MAX_DATA){
-                err("error: data image is too large");
-                error = 1;
-                continue;
-            }
-            DC+= WORD;
-            if(isSym){
+            if(isSym){ /*if a label is being defined we add it as data*/
                 add_symble(sym, DC, "data", symbletab);
+            }
+            if(lookup_symble(word, symbletab)){
                 continue;
             }
+            *tmpint = realloc(data_image, DC);
+            if(!tmpint){
+                err("error: realloc failed");
+                error = 1;
+                continue;
+            }
+            data_image = tmpint;
             data_image[DC] = word;
+            continue;
         }
         else if(strcmp(word, ".asciz") == 0){
-            if(!(len = getword(word, line, lp))){
+            if(!(len = getword(word, line, lp))){ /*get parameter and save its length into len*/
                 err("error: no string given to .asciz");
                 error = 1;
                 continue;
             }
-            i = len;
-            if(isSym){
-                DC+=len;
+            if(isSym){ 
                 add_symble(sym, DC, "data", symbletab);
-                continue;
             }
-            if(isnum(word)){
-                if(DC + len > MAX_DATA){
-                    err("error: data image is too large");
-                    error = 1;
-                    continue;
-                }
-                DC+= len;
-                i = atoi(word);
-                data_image[DC] = i;
+            if(isnum(word)){ /*if we got a number*/
+                err("error: asciz cannot get a number as a parameter");
+                error = 1;
                 continue;
             }
             if(word[0] !='"' || word[len-1] != '"'){
@@ -132,6 +135,12 @@ int first_pass(FILE *input){
             }
             remove_quotes(word);
             DC += len - 2;
+            *tmpint = realloc(data_image, DC);
+            if(!tmpint){
+                err("error: realloc failed");
+                error = 1;
+                continue;
+            }
             data_image[DC] = word;
         }
         /*handle .entry and .extern*/
@@ -175,18 +184,22 @@ int first_pass(FILE *input){
                 rc_bf.rs = 0;
                 if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
+                    continue;
                 }
                 if(reg == SYM){
                     err("error: a symble cannot be given as a parameter to a move command");
                     error = 1;
+                    continue;
                 }
                 rc_bf.rd = reg - 1;
                 if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
+                    continue;
                 }
                 if(reg == SYM){
                     err("error: a symble cannot be given as a parameter to a move command");
                     error = 1;
+                    continue;
                 }
                 rc_bf.rt = reg - 1;
                 rc_bf.opcode = 1;
@@ -219,9 +232,17 @@ int first_pass(FILE *input){
                 rc_bf.opcode = 0;
                 rc_bf.funct = getfunct(word);
             }
-            memcpy(&data_image[IC], &rc_bf, sizeof(rc_bf)); /*add to code image*/
+            tmpint = realloc(code_image, IC);
+            if(!tmpint){
+                err("error: realloc failed");
+                error = 1;
+                continue;
+            }
+            code_image = tmpint;
+            memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'i':
+            /*handle arithmatic or logical commands*/
             if(isarithorlog(word)){
                 if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
@@ -249,6 +270,7 @@ int first_pass(FILE *input){
                     error = 1;
                 }
             }
+            /*handle conditional commands*/
             if(iscond(word)){
                 if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
@@ -276,6 +298,7 @@ int first_pass(FILE *input){
                     error = 1;
                 }
             }
+            /*handle memory loading or saving commands*/
             if(isloading(word)){
                 if(!(reg = getparam(line, &lp, tmp, &i))){
                     error = 1;
@@ -307,6 +330,13 @@ int first_pass(FILE *input){
                     error = 1;
                 }
             }
+            tmpint = realloc(code_image, IC);
+            if(!tmpint){
+                err("error: realloc failed");
+                error = 1;
+                continue;
+            }
+            code_image = tmpint;
             memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'j':
@@ -351,15 +381,17 @@ int first_pass(FILE *input){
                 jc_bf.reg = 0;
                 jc_bf.address = 0;
             }
+            tmpint = realloc(code_image, IC);
+            if(!tmpint){
+                err("error: realloc failed");
+                error = 1;
+                continue;
+            }
+            code_image = tmpint;
             memcpy(&data_image[IC], &jc_bf, sizeof(jc_bf)); /*add to code image*/
             break;
         default:
             break;
-        }
-        if(IC + 4 >= MAX_CODE){
-            err("error: IC is too large. ending first pass of assembly");
-            error = 1;
-            return 0;
         }
         IC+=4;
     }
