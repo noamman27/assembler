@@ -24,7 +24,7 @@ int isloading(char *s);
 int getopcode(char *s);
 int getfunct(char *s);
 void remove_quotes(char *s);
-void update_data_symbles(int icf, Symble *symbletab);
+void update_symbles(int icf, int dcf, Symble *symbletab);
 
 typedef struct {
     char *name;

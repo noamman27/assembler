@@ -87,11 +87,15 @@ Symble *lookup_symble(char *name, Symble *symbletab){
     return NULL;                      /* name not found */
 }
 
-void update_data_symbles(int icf, Symble *symbletab){
+void update_symbles(int icf, int dcf , Symble *symbletab){
     Symble *s = symbletab;               /* start at head of list */
     while(s){                         /* walk every symbol */
-        if(strcmp(s->attribute, "data") == 0)       /* only update data symbols */
+        if(strcmp(s->attribute, "data") == 0){       /* update data symbles */
             s->value += icf;          /* shift value by ICF so it points to correct memory location */
+        }
+        else if (strcmp(s->attribute, "code")){ /*update code symbles*/
+            s->value += dcf;
+        }
         s = s->next;                  /* move to next node */
     }
 }

@@ -18,10 +18,9 @@ int first_pass(FILE *input){
     code_image = malloc(0), data_image = malloc(0); /*initialize code and data image with malloc 0 (we could start off with some value but I dont want to deal with that, so whenever we add anything to these we realloc them)*/
     while(fgets(line, MAXLINE, input) != NULL){ /*run while we can read more from file*/
         lp = 0, isSym = 0; /*reset line pointer and isSym flag*/
-        if(line[0] == ';' || ((len = getword(word, line,lp)) == 0)){ /*check if line is omment or empty; if so we ignore it*/
+        if(line[0] == ';' || ((len = getword(word, line, lp)) == 0)){ /*check if line is omment or empty; if so we ignore it*/
             continue;
         }
-        lp = len; /*set line pointer to len since that is how much*/
         /*check if last char of word is :, if so its a label definition*/
         if(word[len-1] == ':'){ 
             word[len-1] = '\0'; /*remove the : from the label*/
@@ -232,13 +231,6 @@ int first_pass(FILE *input){
                 rc_bf.opcode = 0;
                 rc_bf.funct = getfunct(word);
             }
-            tmpint = realloc(code_image, IC);
-            if(!tmpint){
-                err("error: realloc failed");
-                error = 1;
-                continue;
-            }
-            code_image = tmpint;
             memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'i':
@@ -330,13 +322,6 @@ int first_pass(FILE *input){
                     error = 1;
                 }
             }
-            tmpint = realloc(code_image, IC);
-            if(!tmpint){
-                err("error: realloc failed");
-                error = 1;
-                continue;
-            }
-            code_image = tmpint;
             memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'j':
@@ -381,19 +366,19 @@ int first_pass(FILE *input){
                 jc_bf.reg = 0;
                 jc_bf.address = 0;
             }
-            tmpint = realloc(code_image, IC);
-            if(!tmpint){
-                err("error: realloc failed");
-                error = 1;
-                continue;
-            }
-            code_image = tmpint;
             memcpy(&data_image[IC], &jc_bf, sizeof(jc_bf)); /*add to code image*/
             break;
         default:
             break;
         }
         IC+=4;
+        tmpint = realloc(code_image, IC); /*realloc the array*/
+        if(!tmpint){
+            err("error: realloc failed");
+            error = 1;
+            continue;
+        }
+        code_image = tmpint;
     }
     if(error){
         err("errors detected in first pass - assembly will not continue");
@@ -401,6 +386,6 @@ int first_pass(FILE *input){
     }
     ICF = IC;
     DCF = DC;
-    update_data_symbles(ICF, symbletab);
+    update_symbles(ICF, DCF, symbletab); /*update the symbles by adding icf and dcf*/
     return 1;
 }
