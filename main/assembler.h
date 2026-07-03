@@ -12,8 +12,9 @@
 #define IC_START  100       /* instruction counter starts at 100 per spec      */
 #define WORD      4         /* bytes in a .dw value                            */
 #define HALF_WORD 2         /* bytes in a .dh value                            */
-#define SYM      -1         /* getparam: operand was a symbol/label            */
-#define IMMED    -2         /* getparam: operand was an immediate value        */
+#define REG      -1         /* getparam: operand was a register                */
+#define SYM      -2         /* getparam: operand was a symbol/label            */
+#define IMMED    -3         /* getparam: operand was an immediate value        */
 
 /* ── Error macro ── */
 #define err(s) fprintf(stderr, "%s\n", (s))

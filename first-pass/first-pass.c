@@ -10,8 +10,8 @@ int *code_image, *data_image, *tmpint; /*code image, data image and tmpint - a t
 static int lp = 0, IC = IC_START, DC = 0, ICF, DCF; /*line pointer, IC and DC*/
 
 int first_pass(FILE *input){
-    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type; /*char arrays to represent the whole line, a word in that line, the symble being defined in that line, a temporary pointer for realloc, and type of command*/
-    int isSym = 0, len, i, reg, error = 0; /*flag to say if a symble is being defined, length of word, value of register, index, and error flag*/
+    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type, *params[MAXLINE]; /*char arrays to represent the whole line, a word in that line, the symble being defined in that line, a temporary pointer for realloc, and type of command*/
+    int isSym = 0, len, i, count, error = 0, types[MAXLINE]; /*flag to say if a symble is being defined, length of word, value of register, index, and error flag*/
     R_BF rc_bf; /*bitfields for all commands*/
     I_BF ic_bf;
     J_BF jc_bf;
@@ -181,53 +181,80 @@ int first_pass(FILE *input){
         case 'r':
             if(param_count(word) == 2){
                 rc_bf.rs = 0;
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to move command");
                     error = 1;
                     continue;
                 }
-                if(reg == SYM){
-                    err("error: a symble cannot be given as a parameter to a move command");
+                if(count > 2){
+                    err("error: too many parameters given to move command");
                     error = 1;
                     continue;
                 }
-                rc_bf.rd = reg - 1;
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                else if(count < 2){
+                    err("error: not enough parameters given to move command");
+                }
+                if(types[0] !=  REG){
+                    err("error: a move command cannot be given a parmeter that is not a register");
                     error = 1;
                     continue;
                 }
-                if(reg == SYM){
-                    err("error: a symble cannot be given as a parameter to a move command");
+                rc_bf.rd = atoi(params[0]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: missing parameter");
                     error = 1;
                     continue;
                 }
-                rc_bf.rt = reg - 1;
+                if(types[1] !=  REG){
+                    err("error: a move command cannot be given a parmeter that is not a register");
+                    error = 1;
+                    continue;
+                }
+                rc_bf.rt = atoi(params[1]);
                 rc_bf.opcode = 1;
                 rc_bf.funct = getfunct(word);
             } else {
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to arithmatic or logical R command");
                     error = 1;
-                }
-                if(reg == SYM){
-                    rc_bf.rs = 0;
                     continue;
                 }
-                rc_bf.rs = reg - 1;
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                if(count > 3){
+                    err("error: too many parameters given to arithmatic or logical R command");
                     error = 1;
-                }
-                if(reg == SYM){
-                    rc_bf.rd = 0;
                     continue;
                 }
-                rc_bf.rd = reg - 1;
-                if(!(reg = getparam(line, &lp, tmp, &i))){
-                    error = 1;
+                else if(count < 3){
+                    err("error: not enough parameters given to arithmatic or logical R command");
                 }
-                if(reg == SYM){
-                    rc_bf.rt = 0;
+                if(types[0] !=  REG){
+                    err("error: an arithmatic or logical R command cannot be given a parmeter that is not a register");
+                    error = 1;
                     continue;
                 }
-                rc_bf.rt = reg - 1;
+                rc_bf.rs = atoi(params[0]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: missing parameter");
+                    error = 1;
+                    continue;
+                }
+                if(types[1] !=  REG){
+                    err("error: an arithmatic or logical R command cannot be given a parmeter that is not a register");
+                    error = 1;
+                    continue;
+                }
+                rc_bf.rt = atoi(params[1]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: missing parameter");
+                    error = 1;
+                    continue;
+                }
+                if(types[1] !=  REG){
+                    err("error: an arithmatic or logical R command cannot be given a parmeter that is not a register");
+                    error = 1;
+                    continue;
+                }
+                rc_bf.rd = atoi(params[1]);
                 rc_bf.opcode = 0;
                 rc_bf.funct = getfunct(word);
             }
@@ -236,132 +263,220 @@ int first_pass(FILE *input){
         case 'i':
             /*handle arithmatic or logical commands*/
             if(isarithorlog(word)){
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to arithmatic or logical I command");
                     error = 1;
+                    continue;
                 }
-                if(reg == SYM){
-                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                if(count > 3){
+                    err("error: too many parameters given to arithmatic or logical I command");
                     error = 1;
+                    continue;
                 }
-                ic_bf.rs = reg - 1;
-                if(getparam(line, &lp, tmp, &i) != IMMED){
-                    err("error: no immediate value given to i command");
+                else if(count < 3){
+                    err("error: not enough parameters given to arithmatic or logical I command");
+                }
+                if(types[0] !=  REG){
+                    err("error: an arithmatic or logical I command should be given a register, an immediate value, and another register");
                     error = 1;
+                    continue;
                 }
-                ic_bf.immed = i;
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                ic_bf.rs = atoi(params[0]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: missing parameter");
                     error = 1;
+                    continue;
                 }
-                if(reg == SYM){
-                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                if(types[1] !=  IMMED){
+                    err("error: an arithmatic or logical I command should be given a register, an immediate value, and another register");
                     error = 1;
+                    continue;
                 }
-                ic_bf.rt = reg - 1;
-                if(!(ic_bf.opcode = getopcode(word))){
-                    /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
+                ic_bf.immed = atoi(params[1]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: missing parameter");
                     error = 1;
+                    continue;
                 }
+                if(types[2] !=  REG){
+                    err("error: an arithmatic or logical I command should be given a register, an immediate value, and another register");
+                    error = 1;
+                    continue;
+                }
+                ic_bf.rt = atoi(params[2]);
+                ic_bf.opcode = getopcode(word);
             }
             /*handle conditional commands*/
             if(iscond(word)){
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to conditional I command");
                     error = 1;
+                    continue;
                 }
-                if(reg == SYM || reg == IMMED){
-                    err("error: the first and second parameters of a conditional command must be registers");
+                if(count > 3){
+                    err("error: too many parameters given to conditional I command");
                     error = 1;
+                    continue;
                 }
-                ic_bf.rs = reg - 1;
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                else if(count < 3){
+                    err("error: not enough parameters given to conditional I command");
+                }
+                if(types[0] !=  REG){
+                    err("error: a conditional I command needs 2 registers and a label");
                     error = 1;
+                    continue;
                 }
-                if(reg == SYM || reg == IMMED){
-                    err("error: the first and second parameters of a conditional command must be registers");
+                ic_bf.rs = atoi(params[0]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: no parameter given to R command");
                     error = 1;
+                    continue;
                 }
-                ic_bf.rt = reg - 1;
-                if(getparam(line, &lp, tmp, &i) != SYM){
-                    err("error: no immediate value given to i command");
+                if(types[1] !=  REG){
+                    err("error: a conditional I command needs 2 registers and a label");
                     error = 1;
+                    continue;
                 }
-                /*prolly need to add tmp to code image*/
-                if(!(ic_bf.opcode = getopcode(word))){
-                    /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
+                ic_bf.rt = atoi(params[1]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: no parameter given to I command");
                     error = 1;
+                    continue;
                 }
+                if(types[2] !=  SYM){
+                    err("error: a conditional I command needs 2 registers and a label");
+                    error = 1;
+                    continue;
+                }
+                ic_bf.rt = 0;
+                ic_bf.opcode = getopcode(word);
             }
             /*handle memory loading or saving commands*/
             if(isloading(word)){
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to memory loading I command");
                     error = 1;
+                    continue;
                 }
-                if(reg == SYM){
-                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                if(count > 3){
+                    err("error: too many parameters given to memory loading I command");
                     error = 1;
+                    continue;
                 }
-                ic_bf.rs = reg - 1;
-                if(getparam(line, &lp, tmp, &i) != IMMED){
-                    err("error: no immediate value given to i command");
+                else if(count < 3){
+                    err("error: not enough parameters given to memory loading I command");
+                }
+                if(types[0] !=  REG){
+                    err("error: a memory loading or saving I command should be given a register, an immediate value, and another register");
                     error = 1;
+                    continue;
                 }
-                if(i < -16 || i > 16){
-                    err("error: cannot offset by more than 16 bits");
+                ic_bf.rs = atoi(params[0]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: missing parameter");
                     error = 1;
+                    continue;
                 }
-                ic_bf.immed = i;
-                if(!(reg = getparam(line, &lp, tmp, &i))){
+                if(types[1] !=  IMMED){
+                    err("error: a memory loading or saving I command should be given a register, an immediate value, and another register");
                     error = 1;
+                    continue;
                 }
-                if(reg == SYM){
-                    err("error: a label cannot be given as a parameter to an arithmatric or logical command");
+                ic_bf.immed = atoi(params[1]);
+                if(!getparams(line, lp, params, types)){
+                    err("error: missing parameter");
                     error = 1;
+                    continue;
                 }
-                ic_bf.rt = reg - 1;
-                if(!(ic_bf.opcode = getopcode(word))){
-                    /*we really shouldnt get here since we made sure this was a command so it was most likely an issue with getopcode which is reported within the function*/
+                if(types[2] !=  REG){
+                    err("error: a memory loading or saving I command should be given a register, an immediate value, and another register");
                     error = 1;
+                    continue;
                 }
+                ic_bf.rt = atoi(params[2]);
+                ic_bf.opcode = getopcode(word);
             }
             memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'j':
             if(strcmp(word, "jmp") == 0){
-                    if(!(reg = getparam(line, &lp, tmp, &i))){
-                        error = 1;
-                    }
-                    if(reg == SYM){
-                        jc_bf.opcode = 30;
-                        jc_bf.reg = 0;
-                    }
-                    else if(reg != IMMED){
-                        jc_bf.opcode = 30;
-                        jc_bf.reg = 1;
-                        jc_bf.address = reg-1;
-                    }
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to jmp command");
+                    error = 1;
+                    continue;
+                }
+                if(count > 1){
+                    err("error: too many parameters given to jmp command");
+                    error = 1;
+                    continue;
+                }
+                if(types[0] == SYM){
+                    jc_bf.opcode = 30;
+                    jc_bf.reg = 0;
+                }
+                else if(types[0] == REG){
+                    jc_bf.opcode = 30;
+                    jc_bf.reg = 1;
+                    jc_bf.address = atoi(params[0]);
+                }
+                else{
+                    err("error: an immediate value cannot be given to a jmp command");
+                    error = 1;
+                    continue;
+                }
                 }
             else if(strcmp(word, "la") == 0){
-                    if(!(reg = getparam(line, &lp, tmp, &i))){
-                        error = 1;
-                    }
-                    if(reg != SYM){
-                        err("error: no label given to la");
-                        error = 1;
-                    }
-                    jc_bf.opcode = 31;
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to la command");
+                    error = 1;
+                    continue;
+                }
+                if(count > 1){
+                    err("error: too many parameters given to la command");
+                    error = 1;
+                    continue;
+                }
+                if(types[0] == SYM){
+                    jc_bf.opcode = 30;
                     jc_bf.reg = 0;
+                }
+                else{
+                    err("error: an la command must be given a label");
+                    error = 1;
+                    continue;
+                }
+                jc_bf.opcode = 31;
+                jc_bf.reg = 0;
                 }
             else if(strcmp(word, "call") == 0){
-                    if(!(reg = getparam(line, &lp, tmp, &i))){
-                        error = 1;
-                    }
-                    if(reg != SYM){
-                        err("error: no label given to call");
-                        error = 1;
-                    }
-                    jc_bf.opcode = 32;
+                if(!(count = getparams(line, lp, params, types))){
+                    err("error: no parameter given to call command");
+                    error = 1;
+                    continue;
+                }
+                if(count > 1){
+                    err("error: too many parameters given to call command");
+                    error = 1;
+                    continue;
+                }
+                if(types[0] == SYM){
+                    jc_bf.opcode = 30;
                     jc_bf.reg = 0;
                 }
+                else{
+                    err("error: a call command must be given a label");
+                    error = 1;
+                    continue;
+                }
+                jc_bf.opcode = 32;
+                jc_bf.reg = 0;
+                }
             else if(strcmp(word, "hlt") == 0){
+                if(getparams(line, lp, params, types)){
+                    err("error: no parameters should be given to an hlt command");
+                    error = 1;
+                    continue;
+                }
                 jc_bf.opcode = 63;
                 jc_bf.reg = 0;
                 jc_bf.address = 0;

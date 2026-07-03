@@ -42,14 +42,19 @@ int pre_assemble(FILE *f, FILE *write){
     nlist *np; 
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
         *lp = 0;
-        getword(word, line, lp); /*get the first word and put it in word*/
+        if(!getword(word, line, lp)){ /*use getword to put the first word in the line in word and check if line is empty*/
+            continue; /*ignore*/
+        }
+        if(word[0] == ';'){ /*check if line is note*/
+            continue; /*ignore*/
+        }
         if((np = lookup(word,macrotab))){ /*if first word is a macro name*/
             fputs(np->defn, write); /*write the content of the macro to the file*/
             continue; 
         }
         if(strcmp(word, "mcro") == 0){ /*if first word is a macro decleration*/
             getword(macroName, line, lp); /*place the next word in macroName*/
-            if(gettype(macroName, &commandType)){ /*if the name of the macro is a command*/
+            if(gettype(macroName, &commandType)){ /*make sure new macro's name isnt a command*/
                 err("error: a macro cannot have the same name as a command");
                 error = 1;
                 continue;

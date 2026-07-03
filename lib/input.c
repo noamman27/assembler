@@ -7,7 +7,7 @@
 /*gets the next param after lp in line.
 * if its a symble it puts it in sym, if its an immediate value puts it in immed.
 * returns 0 on fail, return 1 on success, returns -1 if symble is detected, returns -2 if immediate value is detected, returns the register number + 1 otherwise*/
-int getparam(char line[], int *lp, char sym[], int *immed){
+int getparams(char line[], int *lp, char *params[], int types[]){
     char c, param[MAXLINE], tmp[MAXLINE];
     int reg, comma = 0, i = 0;
     if(!getch(line, c, lp)){ /*grab first char of the params*/
@@ -15,65 +15,53 @@ int getparam(char line[], int *lp, char sym[], int *immed){
         return 0; /*and signal error*/
     }
     if(c == ','){ /*check if theres a comma before the param*/
-        comma = 1; /*turn on comma flag*/
-    }
-    if(!getch(line, c, lp)){
-        err("error: nothing after a comma");
+        err("error: comma placed before first parameter");
         return 0;
     }
-    if(c == "$"){ /*if first char is $ we have a register*/
-        if(!(getword(param,line,lp))){ /*get the register name using getword*/
-            err("error: incomplete register"); /*if none is given we signal an error*/
-            return 0;
-        }
-        if(!isnum(param)){ /*if its not a number we also print and signal errors.*/
-            err("error: register isnt a number");
-            return 0;
-        }
-        reg = atoi(param); /*use atoi to get the number*/
-        if(reg > 31){ /*check that 0 <= num <= 31*/
-            err("error: a register cannot be larger than 31");
-            return 0;
-        }
-        else if(reg < 0){
-            err("error: a register cannot be less than 0");
-        }
-        if(getch(line, c , lp)){ /*check for comma in end*/
-            if(!comma && c == ','){
-                comma = 1; 
+    ungetch(line, c, lp);
+    while (getword(param, line, lp)){
+        if(param[0] == "$"){ /*if first char is $ we have a register*/
+            /*remove the $ from the register*/
+            param[0] = param[1];
+            param[1] = param[2];
+            param[2] = NULL;
+            if(!isnum(param)){ /*if its not a number we also print and signal errors*/
+                err("error: register isnt a number");
+                return 0;
             }
+            reg = atoi(param); /*use atoi to get the number*/
+            if(reg > 31){ /*check that 0 <= num <= 31*/
+                err("error: a register cannot be larger than 31");
+                return 0;
+            }
+            else if(reg < 0){
+                err("error: a register cannot be less than 0");
+            }
+            types[i] = REG;
+            params[i] = param;
         }
-        if(comma){ /*only return success if we saw comma*/
-            return reg + 1; /*add one to reg since reg can be 0 and we need 0 to signal fail*/
+        else if(isnum(param)){
+            /*parameter is an immediate value*/
+            types[i] =  IMMED;
+            params[i] = param;
         }
-        /*if no comma was detected we pirnt and signal more errors*/
-        err("missing comma");
-        return 0;
-    }
-    if(isdigit(c)){
-        /*parameter is an immediate value*/
-        tmp[0] = c; /*we start putting the digits into tmp and then use atoi to get the number*/
-        while(isdigit(tmp[++i] = line[*lp++]) && lp < 81) /*place chars into tmp while making sure we dont exceed the length of the line*/
-            ;
-        tmp[i+1] = '\0';
-        *immed = atoi(tmp);
-        return IMMED;
-    }
-    if(isalpha(c)){
-        /*parameter is a label*/
-        sym[0] = c; /*start putting chars into sym*/
-        while(!isspace(sym[++i] = line[*lp++]) && lp < 81) /*place chars into sym while making sure we dont exceed the length of the line*/
-            ;
-        sym[i+1] = '\0';
-        if(gettype(sym, tmp)){
-            err("error: a label cannot habe the same name as a command");
+        else if(isalpha(param[0])){
+            /*parameter is a label*/
+            types[i] =  SYM;
+            params[i] = param;
+        }
+        if(!getch(line, c, lp)){
+            return i + 1;
+        }
+        if(c != ','){
+            err("error: missing comma between parameters");
             return 0;
         }
-        return SYM;
+        i++;
     }
 }
 
-/*puts the first non space char in buffer after start in ch and updates start. returns 0 on fail. 1 on success*/
+/*puts the first non space char in buffer after lp in ch and updates lp. returns 0 on fail. 1 on success*/
 int getch(char buffer[], char *ch, int *lp){
     char c;
     while(isspace((c = buffer[*lp++])))

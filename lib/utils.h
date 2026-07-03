@@ -17,7 +17,7 @@ int isR(char *s);
 int isI(char *s);
 int isJ(char *s);
 int isnum(char *s);
-int getparam(char line[], int *lp, char sym[], int *immed);
+int getparams(char line[], int *lp, char *params[], int types[]);
 int isarithorlog(char *s);
 int iscond(char *s);
 int isloading(char *s);
