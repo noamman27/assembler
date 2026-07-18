@@ -146,6 +146,7 @@ int first_pass(FILE *input){
                 data_image[DC - (len + 1) + i] = (unsigned char)word[i];
             }
             data_image[DC - 1] = '\0';
+        }
         /*handle .entry and .extern*/
         if(strcmp(word, ".entry") == 0){
             continue;
@@ -509,5 +510,4 @@ int first_pass(FILE *input){
     DCF = DC;
     update_symbles(ICF, symbletab); /*update the symbles by adding icf and dcf*/
     return 1;
-}
 }
