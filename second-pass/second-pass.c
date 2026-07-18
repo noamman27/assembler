@@ -12,7 +12,7 @@
         static int cp=0, lp=0;
         int IC=IC_START, DC=0, ICF, DCF;                                     */
 extern Symble *symbletab;
-extern int     data_image[];
+extern int    *data_image;
 extern int     ICF;
 extern int     DCF;
 

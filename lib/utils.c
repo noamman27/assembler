@@ -96,6 +96,10 @@ int isJ(char *s){
 
 /*checks if given pointer represents a number*/
 int isnum(char *s){
+    if(*s != '+' && *s != '-' && !isdigit((*s))){ /*ensure the number starts with a +, - or a digit*/
+        return 0;
+    }
+    s++;
     while(*s){
         if(!isdigit(*s)){
             return 0;
@@ -151,7 +155,7 @@ int getfunct(char *s){
     int i;
     for(i = 0; i < sizeof(rCommands)/sizeof(rCommands[0]); i++){
         /*look for s in rCommands*/
-        if(strcmp(rCommands[i].name, s)){
+        if(strcmp(rCommands[i].name, s) == 0){
             /*when found we return the funct*/
             return rCommands[i].funct;
         }
@@ -169,4 +173,15 @@ void remove_quotes(char *s){
         i++;
     }
     s[j] = '\0';
+}
+
+/*checks if a given line ends (has a newline char)*/
+int lineend(char *s){
+    while(*s){
+        if(*s == '\n'){
+            return 1;
+        }
+        s++;
+    }
+    return 0;
 }

@@ -4,27 +4,26 @@
 #include "utils.h"
 #include "../main/assembler.h"
 
-/*gets the next param after lp in line.
-* if its a symble it puts it in sym, if its an immediate value puts it in immed.
-* returns 0 on fail, return 1 on success, returns -1 if symble is detected, returns -2 if immediate value is detected, returns the register number + 1 otherwise*/
+/*gets all the parameters in line.
+* puts the type of the parameter (register, immediate, label) in types
+* returns the amount of parameters the function found*/
 int getparams(char line[], int *lp, char *params[], int types[]){
     char c, param[MAXLINE], tmp[MAXLINE];
     int reg, comma = 0, i = 0;
-    if(!getch(line, c, lp)){ /*grab first char of the params*/
-        err("error: no parameters given"); /*if none are given we print an error*/
-        return 0; /*and signal error*/
+    if(!getch(line, &c, lp)){ /*grab first char of the params*/
+        return 0; /*if no param is given we return 0*/
     }
     if(c == ','){ /*check if theres a comma before the param*/
         err("error: comma placed before first parameter");
         return 0;
     }
     ungetch(line, c, lp);
-    while (getword(param, line, lp)){
-        if(param[0] == "$"){ /*if first char is $ we have a register*/
+    while (getword(param, line, lp)){ /*run loop as long as there are more parameters*/
+        if(param[0] == '$'){ /*if first char is $ we have a register*/
             /*remove the $ from the register*/
             param[0] = param[1];
             param[1] = param[2];
-            param[2] = NULL;
+            param[2] = '\0';
             if(!isnum(param)){ /*if its not a number we also print and signal errors*/
                 err("error: register isnt a number");
                 return 0;
@@ -50,7 +49,11 @@ int getparams(char line[], int *lp, char *params[], int types[]){
             types[i] =  SYM;
             params[i] = param;
         }
-        if(!getch(line, c, lp)){
+        else{
+            err("error: parameter is not register, immediate value, or label");
+        }
+        if(!getch(line, &c, lp)){
+            /*we reached the end of the line*/
             return i + 1;
         }
         if(c != ','){
@@ -59,6 +62,54 @@ int getparams(char line[], int *lp, char *params[], int types[]){
         }
         i++;
     }
+    return 0;
+}
+
+/*gets a single parameter from the line and classifies it as register, immediate, or symbol*/
+int getparam(char line[], int *lp, char sym[], int *immed){
+    char c, param[MAXLINE];
+    int len;
+
+    if(!getch(line, &c, lp)){
+        return 0;
+    }
+    if(c == ','){
+        err("error: comma placed before first parameter");
+        return 0;
+    }
+    ungetch(line, c, lp);
+
+    len = getword(param, line, lp);
+    if(len == 0){
+        return 0;
+    }
+
+    while(len > 0 && param[len - 1] == ','){
+        param[--len] = '\0';
+    }
+
+    if(param[0] == '$'){
+        memmove(param, param + 1, strlen(param));
+        if(!isnum(param)){
+            err("error: register isnt a number");
+            return 0;
+        }
+        *immed = atoi(param);
+        return *immed + 1;
+    }
+
+    if(isnum(param)){
+        *immed = atoi(param);
+        return IMMED;
+    }
+
+    if(isalpha((unsigned char)param[0])){
+        strcpy(sym, param);
+        return SYM;
+    }
+
+    err("error: parameter is not register, immediate value, or label");
+    return 0;
 }
 
 /*puts the first non space char in buffer after lp in ch and updates lp. returns 0 on fail. 1 on success*/

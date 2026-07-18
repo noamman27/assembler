@@ -52,9 +52,7 @@ nlist *install(char *name, char *defn, nlist *hashtab[]){
 }
 
 int add_symble(const char *name, int value, char *attribute, Symble *symbletab){
-    Symble *existing = NULL;
-
-    if(lookup_symbol(name, &existing)){                              
+    if(lookup_symble((char *)name, symbletab)){                              
         fprintf(stderr, "Error: symbol '%s' already defined\n", name);                                  
         return 0;
     }              
@@ -87,14 +85,11 @@ Symble *lookup_symble(char *name, Symble *symbletab){
     return NULL;                      /* name not found */
 }
 
-void update_symbles(int icf, int dcf , Symble *symbletab){
+void update_symbles(int icf , Symble *symbletab){
     Symble *s = symbletab;               /* start at head of list */
     while(s){                         /* walk every symbol */
         if(strcmp(s->attribute, "data") == 0){       /* update data symbles */
             s->value += icf;          /* shift value by ICF so it points to correct memory location */
-        }
-        else if (strcmp(s->attribute, "code")){ /*update code symbles*/
-            s->value += dcf;
         }
         s = s->next;                  /* move to next node */
     }

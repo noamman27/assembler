@@ -64,7 +64,7 @@ extern int    IC;                   /* current instruction counter            */
 extern int    DC;                   /* current data counter                   */
 extern int    ICF;                  /* final IC after first pass completes    */
 extern int    DCF;                  /* final DC after first pass completes    */
-extern nlist *macrotab;
+extern nlist *macrotab[HASHSIZE];
 extern Symble *symbletab;           /* head of symbol table linked list       */
 
 /* ── macrotab is defined as static inside pre-assembler.c only ──
@@ -85,7 +85,7 @@ int     second_pass(FILE *input, char *basename);
 /* lib/table.c — symbol table */
 int     add_symble(const char *name, int value, char *attribute, Symble *symbletab);
 Symble *lookup_symble(char *name, Symble *symbletab);
-void    update_data_symbles(int icf, Symble *symbletab);
+void    update_symbles(int icf, Symble *symbletab);
 
 /* lib/input.c — input helpers */
 int     getword(char word[], char line[], int *lp);

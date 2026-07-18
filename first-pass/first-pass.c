@@ -5,13 +5,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-static Symble *symbletab = NULL, *sp; /* head of the symbol table linked list */
+Symble *symbletab = NULL, *sp; /* head of the symbol table linked list */
 int *code_image, *data_image, *tmpint; /*code image, data image and tmpint - a temporary int pointer (im a software engineer so I cant name things well)*/
-static int lp = 0, IC = IC_START, DC = 0, ICF, DCF; /*line pointer, IC and DC*/
+int IC = IC_START, DC = 0, ICF, DCF; /*line pointer, IC and DC*/
 
 int first_pass(FILE *input){
     char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type, *params[MAXLINE]; /*char arrays to represent the whole line, a word in that line, the symble being defined in that line, a temporary pointer for realloc, and type of command*/
-    int isSym = 0, len, i, count, error = 0, types[MAXLINE]; /*flag to say if a symble is being defined, length of word, value of register, index, and error flag*/
+    int isSym = 0, len, i, count, error = 0, types[MAXLINE], *lp = 0; /*flag to say if a symble is being defined, length of word, count of params, index, and error flag*/
     R_BF rc_bf; /*bitfields for all commands*/
     I_BF ic_bf;
     J_BF jc_bf;
@@ -24,7 +24,7 @@ int first_pass(FILE *input){
         /*check if last char of word is :, if so its a label definition*/
         if(word[len-1] == ':'){ 
             word[len-1] = '\0'; /*remove the : from the label*/
-            if(lookup_symble(word, NULL, symbletab)){ /*check if label is already defined*/
+            if(lookup_symble(word, symbletab)){ /*check if label is already defined*/
                 fprintf(stderr, "error: label %s is already defined", word);
                 error = 1;
                 continue;
@@ -57,14 +57,14 @@ int first_pass(FILE *input){
             if(lookup_symble(word, symbletab)){
                 continue;
             }
-            *tmpint = realloc(data_image, DC);
+            tmpint = realloc(data_image, DC * sizeof(*data_image));
             if(!tmpint){
                 err("error: realloc failed");
                 error = 1;
                 continue;
             }
             data_image = tmpint;
-            data_image[DC] = word;
+            data_image[DC - 2] = atoi(word);
             continue;
         }
         else if(strcmp(word, ".db") == 0){
@@ -80,14 +80,14 @@ int first_pass(FILE *input){
             if(lookup_symble(word, symbletab)){
                 continue;
             }
-            *tmpint = realloc(data_image, DC);
+            tmpint = realloc(data_image, DC * sizeof(*data_image));
             if(!tmpint){
                 err("error: realloc failed");
                 error = 1;
                 continue;
             }
             data_image = tmpint;
-            data_image[DC] = word;
+            data_image[DC - 1] = atoi(word);
             continue;
         }
         else if(strcmp(word, ".dw") == 0){
@@ -103,14 +103,14 @@ int first_pass(FILE *input){
             if(lookup_symble(word, symbletab)){
                 continue;
             }
-            *tmpint = realloc(data_image, DC);
+            tmpint = realloc(data_image, DC * sizeof(*data_image));
             if(!tmpint){
                 err("error: realloc failed");
                 error = 1;
                 continue;
             }
             data_image = tmpint;
-            data_image[DC] = word;
+            data_image[DC - 4] = atoi(word);
             continue;
         }
         else if(strcmp(word, ".asciz") == 0){
@@ -133,15 +133,19 @@ int first_pass(FILE *input){
                 continue;
             }
             remove_quotes(word);
-            DC += len - 2;
-            *tmpint = realloc(data_image, DC);
+            len = strlen(word);
+            DC += len + 1;
+            tmpint = realloc(data_image, DC * sizeof(*data_image));
             if(!tmpint){
                 err("error: realloc failed");
                 error = 1;
                 continue;
             }
-            data_image[DC] = word;
-        }
+            data_image = tmpint;
+            for(i = 0; i < len; i++){
+                data_image[DC - (len + 1) + i] = (unsigned char)word[i];
+            }
+            data_image[DC - 1] = '\0';
         /*handle .entry and .extern*/
         if(strcmp(word, ".entry") == 0){
             continue;
@@ -162,7 +166,8 @@ int first_pass(FILE *input){
                 error = 1;
                 continue;
             }
-            if(lookup_symble(word, &sp, symbletab) && strcmp(sp->attribute, "external")){
+            sp = lookup_symble(word, symbletab);
+            if(sp && strcmp(sp->attribute, "external")){
                 fprintf(stderr,"error: label %s already defined not as external", word);
                 error = 1;
                 continue;
@@ -176,10 +181,11 @@ int first_pass(FILE *input){
             add_symble(sym, IC, "code", symbletab);
         }
         /*handle encoding of commands*/
+        /*for all commands we get the parameters using getparams, and ensure we got the correct amount and type of parameters, and put the parameters in the correct location*/
         switch (type)
         {
         case 'r':
-            if(param_count(word) == 2){
+            if(count_params(word) == 2){
                 rc_bf.rs = 0;
                 if(!(count = getparams(line, lp, params, types))){
                     err("error: no parameter given to move command");
@@ -501,6 +507,7 @@ int first_pass(FILE *input){
     }
     ICF = IC;
     DCF = DC;
-    update_symbles(ICF, DCF, symbletab); /*update the symbles by adding icf and dcf*/
+    update_symbles(ICF, symbletab); /*update the symbles by adding icf and dcf*/
     return 1;
+}
 }

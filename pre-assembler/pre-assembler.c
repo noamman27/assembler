@@ -5,7 +5,7 @@
 #include "../main/assembler.h"
 #include "../lib/utils.h"
 
-nlist *macrotab;
+nlist *macrotab[HASHSIZE];
 
 /*appends text into buffer. makes sure that buffer has enough room,if not it reallocs based in capacity and length. returns 1 on success and 0 on failiure*/
 static int append_text(char **buffer, size_t *capacity, size_t *length, const char *text){
@@ -41,6 +41,11 @@ int pre_assemble(FILE *f, FILE *write){
     int mcro, line_count = 0; /*initialize mcro flag and line count that is set to 0*/
     nlist *np; 
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
+        if(!lineend(line)){
+            err("error: line is longer than 80 chars");
+            error = 1;
+            continue;
+        }
         *lp = 0;
         if(!getword(word, line, lp)){ /*use getword to put the first word in the line in word and check if line is empty*/
             continue; /*ignore*/
