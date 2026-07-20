@@ -7,11 +7,11 @@
 
 /* ── externs from first-pass.c ─────────────────────────────────────────────
    REQUIRED CHANGES in first-pass.c before this compiles:
-   1. remove 'static' from:  static Symble *symbletab
+   1. remove 'static' from:  static symbol *symboltab
    2. split declaration and remove 'static' from ICF, DCF:
         static int cp=0, lp=0;
         int IC=IC_START, DC=0, ICF, DCF;                                     */
-extern Symble *symbletab;
+extern symbol *symboltab;
 extern int    *data_image;
 extern int     ICF;
 extern int     DCF;
@@ -57,7 +57,7 @@ static void free_ext_refs(void){
      "external" → ERROR (external symbols cannot be entry points)
    the old attribute string is NOT freed because it may be a string literal.
 ───────────────────────────────────────────────────────────────────────── */
-static int add_entry_attr(Symble *s, char *sym_name){
+static int add_entry_attr(symbol *s, char *sym_name){
     if(strcmp(s->attribute, "external") == 0){
         fprintf(stderr, "error: symbol '%s' is external and cannot be .entry\n", sym_name);
         return 0;
@@ -111,7 +111,7 @@ static void write_ob(char *basename){
 /* .ent file: one line per entry symbol — only written if entries exist      */
 static void write_ent(char *basename){
     int has_entry = 0;
-    Symble *s = symbletab;
+    symbol *s = symboltab;
     while(s){
         if(strstr(s->attribute, "entry") != NULL){ has_entry = 1; break; }
         s = s->next;
@@ -123,7 +123,7 @@ static void write_ent(char *basename){
     FILE *f = fopen(filename, "w");
     if(!f){ fprintf(stderr, "error: cannot open %s\n", filename); return; }
 
-    s = symbletab;
+    s = symboltab;
     while(s){
         if(strstr(s->attribute, "entry") != NULL)
             fprintf(f, "%s %04d\n", s->name, s->value);
@@ -195,7 +195,7 @@ int second_pass(FILE *input, char *basename){
                 error = 1;
                 continue;
             }
-            Symble *s = lookup_symble(sym, symbletab);
+            symbol *s = lookup_symbol(sym, symboltab);
             if(!s){
                 fprintf(stderr, "error: .entry symbol '%s' not defined\n", sym);
                 error = 1;
@@ -223,7 +223,7 @@ int second_pass(FILE *input, char *basename){
             getparam(line, &lp, sym, &immed); /* skip $rt                     */
             reg = getparam(line, &lp, sym, &immed); /* get label              */
             if(reg == SYM){
-                Symble *s = lookup_symble(sym, symbletab);
+                symbol *s = lookup_symbol(sym, symboltab);
                 if(!s){
                     fprintf(stderr, "error: label '%s' not found\n", sym);
                     error = 1;
@@ -243,7 +243,7 @@ int second_pass(FILE *input, char *basename){
             lp = 0;
             reg = getparam(line, &lp, sym, &immed);
             if(reg == SYM){
-                Symble *s = lookup_symble(sym, symbletab);
+                symbol *s = lookup_symbol(sym, symboltab);
                 if(!s){
                     fprintf(stderr, "error: label '%s' not found\n", sym);
                     error = 1;

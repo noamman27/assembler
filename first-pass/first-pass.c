@@ -5,13 +5,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-Symble *symbletab = NULL, *sp; /* head of the symbol table linked list */
+symbol *symboltab = NULL, *sp; /* head of the symbol table linked list */
 int *code_image, *data_image, *tmpint; /*code image, data image and tmpint - a temporary int pointer (im a software engineer so I cant name things well)*/
 int IC = IC_START, DC = 0, ICF, DCF; /*line pointer, IC and DC*/
 
 int first_pass(FILE *input){
-    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type, *params[MAXLINE]; /*char arrays to represent the whole line, a word in that line, the symble being defined in that line, a temporary pointer for realloc, and type of command*/
-    int isSym = 0, len, i, count, error = 0, types[MAXLINE], *lp = 0; /*flag to say if a symble is being defined, length of word, count of params, index, and error flag*/
+    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type, *params[MAXLINE]; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, and type of command*/
+    int isSym = 0, len, i, count, error = 0, types[MAXLINE], *lp = 0; /*flag to say if a symbol is being defined, length of word, count of params, index, and error flag*/
     R_BF rc_bf; /*bitfields for all commands*/
     I_BF ic_bf;
     J_BF jc_bf;
@@ -24,7 +24,7 @@ int first_pass(FILE *input){
         /*check if last char of word is :, if so its a label definition*/
         if(word[len-1] == ':'){ 
             word[len-1] = '\0'; /*remove the : from the label*/
-            if(lookup_symble(word, symbletab)){ /*check if label is already defined*/
+            if(lookup_symbol(word, symboltab)){ /*check if label is already defined*/
                 fprintf(stderr, "error: label %s is already defined", word);
                 error = 1;
                 continue;
@@ -52,9 +52,9 @@ int first_pass(FILE *input){
                 continue;
             }
             if(isSym){ /*if a label is being defined we add it as data*/
-                add_symble(sym, DC, "data", symbletab);
+                add_symbol(sym, DC, "data", symboltab);
             }
-            if(lookup_symble(word, symbletab)){
+            if(lookup_symbol(word, symboltab)){
                 continue;
             }
             tmpint = realloc(data_image, DC * sizeof(*data_image));
@@ -75,9 +75,9 @@ int first_pass(FILE *input){
                 continue;
             }
             if(isSym){ /*if a label is being defined we add it as data*/
-                add_symble(sym, DC, "data", symbletab);
+                add_symbol(sym, DC, "data", symboltab);
             }
-            if(lookup_symble(word, symbletab)){
+            if(lookup_symbol(word, symboltab)){
                 continue;
             }
             tmpint = realloc(data_image, DC * sizeof(*data_image));
@@ -98,9 +98,9 @@ int first_pass(FILE *input){
                 continue;
             }
             if(isSym){ /*if a label is being defined we add it as data*/
-                add_symble(sym, DC, "data", symbletab);
+                add_symbol(sym, DC, "data", symboltab);
             }
-            if(lookup_symble(word, symbletab)){
+            if(lookup_symbol(word, symboltab)){
                 continue;
             }
             tmpint = realloc(data_image, DC * sizeof(*data_image));
@@ -120,7 +120,7 @@ int first_pass(FILE *input){
                 continue;
             }
             if(isSym){ 
-                add_symble(sym, DC, "data", symbletab);
+                add_symbol(sym, DC, "data", symboltab);
             }
             if(isnum(word)){ /*if we got a number*/
                 err("error: asciz cannot get a number as a parameter");
@@ -153,12 +153,12 @@ int first_pass(FILE *input){
         }
         if(strcmp(word, ".extern") == 0){
             if(!getword(word, line, lp)){
-                err("error: no symble given as parameter for .extern");
+                err("error: no symbol given as parameter for .extern");
                 error = 1;
                 continue;
             }
             if(isdigit(word[0])){
-                err("symble given as parameter for .extern isnt valid");
+                err("symbol given as parameter for .extern isnt valid");
                 error = 1;
                 continue;
             }
@@ -167,19 +167,19 @@ int first_pass(FILE *input){
                 error = 1;
                 continue;
             }
-            sp = lookup_symble(word, symbletab);
+            sp = lookup_symbol(word, symboltab);
             if(sp && strcmp(sp->attribute, "external")){
                 fprintf(stderr,"error: label %s already defined not as external", word);
                 error = 1;
                 continue;
             }
-            add_symble(word, 0, "external", symbletab);
+            add_symbol(word, 0, "external", symboltab);
         }
         if(!gettype(word,&type)){
             err("error: command not recognized");
         }
         if(isSym){
-            add_symble(sym, IC, "code", symbletab);
+            add_symbol(sym, IC, "code", symboltab);
         }
         /*handle encoding of commands*/
         /*for all commands we get the parameters using getparams, and ensure we got the correct amount and type of parameters, and put the parameters in the correct location*/
@@ -508,6 +508,6 @@ int first_pass(FILE *input){
     }
     ICF = IC;
     DCF = DC;
-    update_symbles(ICF, symbletab); /*update the symbles by adding icf and dcf*/
+    update_symbols(ICF, symboltab); /*update the symbols by adding icf and dcf*/
     return 1;
 }
