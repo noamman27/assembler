@@ -13,7 +13,7 @@ typedef struct{
     char *name;
     char *attribute;
     int value;
-    Symble *next;
+    Symbol *next;
 } symbol;
 
 unsigned hash(char *s, nlist *hashtab[]);

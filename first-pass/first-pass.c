@@ -10,7 +10,7 @@ int *code_image, *data_image, *tmpint; /*code image, data image and tmpint - a t
 int IC = IC_START, DC = 0, ICF, DCF; /*line pointer, IC and DC*/
 
 int first_pass(FILE *input){
-    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type, *params[MAXLINE]; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, and type of command*/
+    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type, *params[MAXLINE]; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, type of command, and array to hold parameters*/
     int isSym = 0, len, i, count, error = 0, types[MAXLINE], *lp = 0; /*flag to say if a symbol is being defined, length of word, count of params, index, and error flag*/
     R_BF rc_bf; /*bitfields for all commands*/
     I_BF ic_bf;
@@ -45,72 +45,84 @@ int first_pass(FILE *input){
         }
         /*handle data instructions*/
         if(strcmp(word, ".dh") == 0 ) {
-            DC += HALF_WORD; /*add half word to DC*/
-            if(!getword(word, line, lp)){ /*make sure we get an argument*/
-                err("error: no value given to .dh");
-                error = 1;
-                continue;
-            }
+            count = getparams(line, lp, params, types);
             if(isSym){ /*if a label is being defined we add it as data*/
                 add_symbol(sym, DC, "data", symboltab);
             }
-            if(lookup_symbol(word, symboltab)){
-                continue;
+            for(i = 0; i<count; i++){
+                if(types[i] != IMMED){
+                    err("error: .dh only accepts numbers");
+                    error = 1;
+                    continue;
+                }
+                if(atoi(params[i]) > MAX_HALF_WORD || atoi(params[i]) MIN_HALF_WORD){
+                    err("error: number given to .dh exceeds values representable");
+                    error = 1;
+                    continue;
+                }
+                tmpint = (int *) realloc(data_image, DC += HALF_WORD);
+                if(!tmpint){
+                    err("error: realloc failed");
+                    error = 1;
+                    continue;
+                }
+                data_image = tmpint;
+                data_image[DC] = atoi(params[i]);
             }
-            tmpint = realloc(data_image, DC * sizeof(*data_image));
-            if(!tmpint){
-                err("error: realloc failed");
-                error = 1;
-                continue;
-            }
-            data_image = tmpint;
-            data_image[DC - 2] = atoi(word);
             continue;
         }
         else if(strcmp(word, ".db") == 0){
-            DC += 1; /*add a bit to DC*/
-            if(!getword(word, line, lp)){ /*make sure we get an argument*/
-                err("error: no value given to .dh");
-                error = 1;
-                continue;
-            }
+            count = getparams(line, lp, params, types);
             if(isSym){ /*if a label is being defined we add it as data*/
                 add_symbol(sym, DC, "data", symboltab);
             }
-            if(lookup_symbol(word, symboltab)){
-                continue;
+            for(i = 0; i<count; i++){
+                if(types[i] != IMMED){
+                    err("error: .dh only accepts numbers");
+                    error = 1;
+                    continue;
+                }
+                if(atoi(params[i]) > MAX_BYTE || atoi(params[i]) MIN_BYTE){
+                    err("error: number given to .dh exceeds values representable");
+                    error = 1;
+                    continue;
+                }
+                tmpint = (int *) realloc(data_image, DC += 1);
+                if(!tmpint){
+                    err("error: realloc failed");
+                    error = 1;
+                    continue;
+                }
+                data_image = tmpint;
+                data_image[DC] = atoi(params[i]);
             }
-            tmpint = realloc(data_image, DC * sizeof(*data_image));
-            if(!tmpint){
-                err("error: realloc failed");
-                error = 1;
-                continue;
-            }
-            data_image = tmpint;
-            data_image[DC - 1] = atoi(word);
             continue;
         }
         else if(strcmp(word, ".dw") == 0){
-            DC += WORD; /*add half word to DC*/
-            if(!getword(word, line, lp)){ /*make sure we get an argument*/
-                err("error: no value given to .dh");
-                error = 1;
-                continue;
-            }
+            count = getparams(line, lp, params, types);
             if(isSym){ /*if a label is being defined we add it as data*/
                 add_symbol(sym, DC, "data", symboltab);
             }
-            if(lookup_symbol(word, symboltab)){
-                continue;
+            for(i = 0; i<count; i++){
+                if(types[i] != IMMED){
+                    err("error: .dh only accepts numbers");
+                    error = 1;
+                    continue;
+                }
+                if(atoi(params[i]) > MAX_WORD || atoi(params[i]) MIN_WORD){
+                    err("error: number given to .dh exceeds values representable");
+                    error = 1;
+                    continue;
+                }
+                tmpint = (int *) realloc(data_image, DC += WORD);
+                if(!tmpint){
+                    err("error: realloc failed");
+                    error = 1;
+                    continue;
+                }
+                data_image = tmpint;
+                data_image[DC] = atoi(params[i]);
             }
-            tmpint = realloc(data_image, DC * sizeof(*data_image));
-            if(!tmpint){
-                err("error: realloc failed");
-                error = 1;
-                continue;
-            }
-            data_image = tmpint;
-            data_image[DC - 4] = atoi(word);
             continue;
         }
         else if(strcmp(word, ".asciz") == 0){
@@ -127,13 +139,13 @@ int first_pass(FILE *input){
                 error = 1;
                 continue;
             }
-            if(word[0] !='"' || word[len-1] != '"'){
+            if(word[0] !='"' || word[len-2] != '"'){
                 err("error: string given to .asciz is not valid");
                 error = 1;
                 continue;
             }
             remove_quotes(word);
-            len = strlen(word);
+            len -= 2;
             DC += len + 1;
             tmpint = realloc(data_image, DC * sizeof(*data_image));
             if(!tmpint){
