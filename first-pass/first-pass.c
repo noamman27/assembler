@@ -6,17 +6,18 @@
 #include <stdlib.h>
 
 symbol *symboltab = NULL, *sp; /* head of the symbol table linked list */
-int *code_image, *data_image, *tmpint; /*code image, data image and tmpint - a temporary int pointer (im a software engineer so I cant name things well)*/
-int IC = IC_START, DC = 0, ICF, DCF; /*line pointer, IC and DC*/
+int *code_image, *tmpint; /*code image and tmpint - a temporary int pointer (im a software engineer so I cant name things well)*/
+char *data_image;
+int IC = IC_START, DC = 0, ICF, DCF, ip; /*line pointer, IC, DC, and their final values, as well as an instruction pointer (current location in code_image), which is used instead of IC to cut down on memory*/
 
 int first_pass(FILE *input){
     char line[MAXLINE], word[MAXLINE], sym[MAXLINE], *tmp, type, *params[MAXLINE]; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, type of command, and array to hold parameters*/
-    int isSym = 0, len, i, count, error = 0, types[MAXLINE], *lp = 0; /*flag to say if a symbol is being defined, length of word, count of params, index, and error flag*/
+    int isSym = 0, len, i, j, count, error = 0, types[MAXLINE], *lp = 0; /*flag to say if a symbol is being defined, length of word, count of params, index, and error flag*/
     R_BF rc_bf; /*bitfields for all commands*/
     I_BF ic_bf;
     J_BF jc_bf;
-    code_image = malloc(0), data_image = malloc(0); /*initialize code and data image with malloc 0 (we could start off with some value but I dont want to deal with that, so whenever we add anything to these we realloc them)*/
-    while(fgets(line, MAXLINE, input) != NULL){ /*run while we can read more from file*/
+    code_image = (char *) malloc(sizeof(char)), data_image = (int *) malloc(sizeof(int)); /*initialize code and data image with malloc, sizeof(char) is used instead of 1 for clarity*/
+    while(fgets(line, MAXLINE, input) != NULL){ /*run as long as we can read more from file*/
         lp = 0, isSym = 0; /*reset line pointer and isSym flag*/
         if(line[0] == ';' || ((len = getword(word, line, lp)) == 0)){ /*check if line is omment or empty; if so we ignore it*/
             continue;
@@ -60,14 +61,16 @@ int first_pass(FILE *input){
                     error = 1;
                     continue;
                 }
-                tmpint = (int *) realloc(data_image, DC += HALF_WORD);
-                if(!tmpint){
+                tmp = (char *) realloc(data_image, DC += HALF_WORD);
+                if(!tmp){
                     err("error: realloc failed");
                     error = 1;
                     continue;
                 }
-                data_image = tmpint;
-                data_image[DC] = atoi(params[i]);
+                data_image = tmp;
+                for(j = 0; j < HALF_WORD; j++){ /*add data to data image*/
+                    data_image[DC - j] = (char) atoi(params[i]);
+                }
             }
             continue;
         }
@@ -87,13 +90,13 @@ int first_pass(FILE *input){
                     error = 1;
                     continue;
                 }
-                tmpint = (int *) realloc(data_image, DC += 1);
-                if(!tmpint){
+                tmp = (char *) realloc(data_image, DC += 1);
+                if(!tmp){
                     err("error: realloc failed");
                     error = 1;
                     continue;
                 }
-                data_image = tmpint;
+                data_image = tmp;
                 data_image[DC] = atoi(params[i]);
             }
             continue;
@@ -114,14 +117,16 @@ int first_pass(FILE *input){
                     error = 1;
                     continue;
                 }
-                tmpint = (int *) realloc(data_image, DC += WORD);
-                if(!tmpint){
+                tmp = (char *) realloc(data_image, DC += WORD);
+                if(!tmp){
                     err("error: realloc failed");
                     error = 1;
                     continue;
                 }
-                data_image = tmpint;
-                data_image[DC] = atoi(params[i]);
+                data_image = tmp;
+                for(j = 0; j < WORD; j++){ /*add data to data image*/
+                    data_image[DC - j] = (char) atoi(params[i]);
+                }
             }
             continue;
         }
@@ -134,10 +139,12 @@ int first_pass(FILE *input){
             if(isSym){ 
                 add_symbol(sym, DC, "data", symboltab);
             }
-            if(isnum(word)){ /*if we got a number*/
-                err("error: asciz cannot get a number as a parameter");
-                error = 1;
-                continue;
+            for(i = 0; i < len; i++){
+                if(isdigit(word[i])){
+                    err("error: digit given to .asciz");
+                    error = 1;
+                    continue;
+                }
             }
             if(word[0] !='"' || word[len-2] != '"'){
                 err("error: string given to .asciz is not valid");
@@ -277,7 +284,7 @@ int first_pass(FILE *input){
                 rc_bf.opcode = 0;
                 rc_bf.funct = getfunct(word);
             }
-            memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
+            memcpy(&data_image[ip], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'i':
             /*handle arithmatic or logical commands*/
@@ -415,7 +422,7 @@ int first_pass(FILE *input){
                 ic_bf.rt = atoi(params[2]);
                 ic_bf.opcode = getopcode(word);
             }
-            memcpy(&data_image[IC], &ic_bf, sizeof(ic_bf)); /*add to code image*/
+            memcpy(&data_image[ip], &ic_bf, sizeof(ic_bf)); /*add to code image*/
             break;
         case 'j':
             if(strcmp(word, "jmp") == 0){
@@ -500,14 +507,14 @@ int first_pass(FILE *input){
                 jc_bf.reg = 0;
                 jc_bf.address = 0;
             }
-            memcpy(&data_image[IC], &jc_bf, sizeof(jc_bf)); /*add to code image*/
+            memcpy(&data_image[ip], &jc_bf, sizeof(jc_bf)); /*add to code image*/
             break;
         default:
             break;
         }
         IC+=4;
-        tmpint = realloc(code_image, IC); /*realloc the array*/
-        if(!tmpint){
+        tmpint = (int *) realloc(code_image, ip * sizeof(int)); /*realloc the array*/
+        if(!tmpint){ /*ensure success*/
             err("error: realloc failed");
             error = 1;
             continue;

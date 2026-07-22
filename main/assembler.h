@@ -59,7 +59,7 @@ typedef struct {
     char          *name;      /* label name string                            */
     int            value;     /* address of the symbol in memory              */
     char          *attribute; /* "code", "data", "external", or "entry"       */
-    struct Symbol *next;      /* next node in the linked list                 */
+    Symbol *next;      /* next node in the linked list                 */
 } Symbol;
 
 /* ── Globals defined in first-pass.c ──────────────────────────────────────

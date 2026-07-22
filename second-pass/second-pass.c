@@ -5,12 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 
-/* ── externs from first-pass.c ─────────────────────────────────────────────
-   REQUIRED CHANGES in first-pass.c before this compiles:
-   1. remove 'static' from:  static symbol *symboltab
-   2. split declaration and remove 'static' from ICF, DCF:
-        static int cp=0, lp=0;
-        int IC=IC_START, DC=0, ICF, DCF;                                     */
+/* ── externs from first-pass.c ──*/
 extern symbol *symboltab;
 extern int    *data_image;
 extern int     ICF;
