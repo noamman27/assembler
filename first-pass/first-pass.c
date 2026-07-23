@@ -69,7 +69,7 @@ int first_pass(FILE *input){
                 }
                 data_image = tmp;
                 for(j = 0; j < HALF_WORD; j++){ /*add data to data image*/
-                    data_image[DC - j] = (char) atoi(params[i]);
+                    data_image[DC - (HALF_WORD - j)] = (char) atoi(params[i]) << 8 * j;
                 }
             }
             continue;
@@ -125,7 +125,7 @@ int first_pass(FILE *input){
                 }
                 data_image = tmp;
                 for(j = 0; j < WORD; j++){ /*add data to data image*/
-                    data_image[DC - j] = (char) atoi(params[i]);
+                    data_image[DC - (WORD - j)] = (char) atoi(params[i]) << 8 * j;
                 }
             }
             continue;
