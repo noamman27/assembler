@@ -152,6 +152,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
     int  len;
     int  error  = 0;
     int  ic     = IC_START; /* mirrors first-pass IC — tracks current instruction address */
+    int  ip     = 0;        /*instuction pointer - same as in first pass*/
     int  reg;
     int  immed;
     char type;
@@ -218,9 +219,9 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
                     error = 1;
                 } else {
                     I_BF ibf;
-                    memcpy(&ibf, &data_image[ic], sizeof(ibf));
-                    ibf.immed = (unsigned short)(s->value - ic); /* relative offset */
-                    memcpy(&data_image[ic], &ibf, sizeof(ibf));
+                    memcpy(&ibf, &data_image[ip], sizeof(ibf));
+                    ibf.immed = (unsigned short)(s->value - ip); /* relative offset */
+                    memcpy(&data_image[ip], &ibf, sizeof(ibf));
                 }
             }
         }
@@ -238,9 +239,9 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
                     error = 1;
                 } else {
                     J_BF jbf;
-                    memcpy(&jbf, &data_image[ic], sizeof(jbf));
+                    memcpy(&jbf, &data_image[ip], sizeof(jbf));
                     jbf.address = (unsigned int)s->value;
-                    memcpy(&data_image[ic], &jbf, sizeof(jbf));
+                    memcpy(&data_image[ip], &jbf, sizeof(jbf));
                     /* step 8: if external, record the reference              */
                     if(strcmp(s->attribute, "external") == 0)
                         add_ext_ref(sym, ic);
@@ -250,6 +251,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
         }
 
         ic += 4; /* every instruction is 4 bytes                              */
+        ip += 1;
     }
 
     /* step 9: stop if errors — no output files                               */
