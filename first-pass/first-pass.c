@@ -138,7 +138,7 @@ static int handle_data(char line[], char word[], char *data_image, int *lp, int 
         }
         data_image = tmp;
         for(j = 0; j < HALF_WORD; j++){ /*add data to data image*/
-            data_image[DC - j] = (char) atoi(params[i]);
+            data_image[DC - (HALF_WORD - j)] = (char) atoi(params[i]) << 8*j;
         }
     }
 }
@@ -186,7 +186,7 @@ else if(strcmp(word, ".dw") == 0){
         }
         data_image = tmp;
         for(j = 0; j < WORD; j++){ /*add data to data image*/
-            data_image[DC - j] = (char) atoi(params[i]);
+            data_image[DC - (WORD - j)] = (char) atoi(params[i]) << 8*j;
         }
     }
     return 1;
