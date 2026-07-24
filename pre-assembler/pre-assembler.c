@@ -33,7 +33,7 @@ static int append_text(char **buffer, size_t *capacity, size_t *length, const ch
 
 
 /*gets file *f and *write. reads f writes a pre assembled version to write. deployes all macros in f*/
-int pre_assemble(FILE *f, FILE *write){
+int pre_assemble(FILE *f, FILE *write, char *name){
     char line[MAXLINE], word[MAXLINE], macroName[MAXLINE], *macroContent = NULL, commandType;
     int *lp = 0, error = 0;
     size_t macroContentCap = 0;
@@ -104,6 +104,9 @@ int pre_assemble(FILE *f, FILE *write){
     free(macroContent);/*reached EOF so we free the array*/
     if(error){ /*if we found errors*/
         err("errors detected in pre assembly. assembly will not continue");
+        return 0;
+    }
+    if(!first_pass(f, name, macrotab)){
         return 0;
     }
     return 1;

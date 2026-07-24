@@ -5,12 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 
-/* ── externs from first-pass.c ──*/
-extern symbol *symboltab;
-extern int    *data_image;
-extern int     ICF;
-extern int     DCF;
-
 /* ═══════════════════════════════════════════════════════════════════════════
    EXTERNAL REFERENCE LIST
    tracks every J-type instruction that uses an external symbol label.
@@ -104,7 +98,7 @@ static void write_ob(char *basename){
 }
 
 /* .ent file: one line per entry symbol — only written if entries exist      */
-static void write_ent(char *basename){
+static void write_ent(char *basename, Symbol *symboltab){
     int has_entry = 0;
     symbol *s = symboltab;
     while(s){
@@ -150,7 +144,7 @@ static void write_ext(char *basename){
    basename — filename base for output files (.ob / .ent / .ext)
    returns 1 on success, 0 if any error found
 ═══════════════════════════════════════════════════════════════════════════ */
-int second_pass(FILE *input, char *basename){
+int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, Symbol *symboltab, char *data_image){
     char line[MAXLINE];
     char word[MAXLINE];
     char sym[MAXLINE];
@@ -266,7 +260,7 @@ int second_pass(FILE *input, char *basename){
 
     /* step 10: write output files                                             */
     write_ob(basename);
-    write_ent(basename);
+    write_ent(basename, symboltab);
     write_ext(basename);
 
     free_ext_refs();

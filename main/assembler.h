@@ -62,33 +62,16 @@ typedef struct {
     Symbol *next;      /* next node in the linked list                 */
 } Symbol;
 
-/* ── Globals defined in first-pass.c ──────────────────────────────────────
-   NOTE: in first-pass.c the following must NOT be declared static:
-     Symbol *Symboltab   (remove 'static')
-     int ICF, DCF        (remove 'static' from their declaration)            */
-extern int    *data_image; /* unified memory image                   */
-extern int    *code_image; /* kept for compatibility                 */
-extern int    IC;                   /* current instruction counter            */
-extern int    DC;                   /* current data counter                   */
-extern int    ICF;                  /* final IC after first pass completes    */
-extern int    DCF;                  /* final DC after first pass completes    */
-extern nlist *macrotab[HASHSIZE];
-extern Symbol *Symboltab;           /* head of symbol table linked list       */
-
-/* ── macrotab is defined as static inside pre-assembler.c only ──
-   do NOT declare it here — each .c file that includes this header
-   would get its own separate (empty) copy, breaking lookup/install          */
-
 /* ── Function declarations ── */
 
 /* pre-assembler/pre-assembler.c */
-int     pre_assemble(FILE *f, FILE *write);
+int     pre_assemble(FILE *f, FILE *write, char *name);
 
 /* first-pass/first-pass.c */
-int     first_pass(FILE *f);
+int     first_pass(FILE *f, char *name, nlist *macrotab);
 
 /* second-pass/second-pass.c */
-int     second_pass(FILE *input, char *basename);
+int     second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, Symbol *symboltab, char *data_image);
 
 /* lib/table.c — symbol table */
 int add_symbol(const char *name, int value, char *attribute, symbol *symboltab);

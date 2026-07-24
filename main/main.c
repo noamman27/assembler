@@ -22,12 +22,6 @@ int main(int argc, char *argv[]){
         if(!pre_assemble(original, pre_assembled)){ /*call pre assembler and make sure no errors were given*/
             return 1; /* if errors were given we just return 1 since pre assembler prints errors*/
         }
-        if(!first_pass(pre_assembled)){
-            return 1;
-        }
-        if(!second_pass(pre_assembled, name)){
-            return 1;
-        }
         fclose(original); /*close the files*/
         fclose(pre_assembled);
         /*TODO: once we implement next passes call them*/
