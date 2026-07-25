@@ -106,9 +106,8 @@ int pre_assemble(FILE *f, FILE *write, char *name){
         err("errors detected in pre assembly. assembly will not continue");
         return 0;
     }
-    if(!first_pass(f, name, macrotab)){
+    if(!first_pass(write, name, macrotab)){
         return 0;
     }
     return 1;
-
 }

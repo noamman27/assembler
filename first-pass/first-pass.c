@@ -82,9 +82,6 @@ int first_pass(FILE *input, char *name, nlist *macrotab){
         if(!gettype(word,&type)){
             err("error: command not recognized");
         }
-        if(isSym){
-            add_symbol(sym, IC, "code", symboltab);
-        }
         /*handle encoding of commands*/
         /*for all commands we get the parameters using getparams, and ensure we got the correct amount and type of parameters, and put the parameters in the correct location*/
         if(!encode_command(line, word, code_image, lp, type)){
@@ -92,6 +89,9 @@ int first_pass(FILE *input, char *name, nlist *macrotab){
             continue;
         }
         IC+=4;
+        if(isSym){
+            add_symbol(sym, IC, "code", symboltab);
+        }
         tmpint = (int *) realloc(code_image, ip * sizeof(int)); /*realloc the array*/
         if(!tmpint){ /*ensure success*/
             err("error: realloc failed");
