@@ -35,7 +35,7 @@ static int append_text(char **buffer, size_t *capacity, size_t *length, const ch
 /*gets file *f and *write. reads f writes a pre assembled version to write. deployes all macros in f*/
 int pre_assemble(FILE *f, FILE *write, char *name){
     char line[MAXLINE], word[MAXLINE], macroName[MAXLINE], *macroContent = NULL, commandType;
-    int *lp = 0, error = 0;
+    int lp = 0, error = 0;
     size_t macroContentCap = 0;
     size_t macroContentLen = 0;
     int mcro, line_count = 0; /*initialize mcro flag and line count that is set to 0*/
@@ -46,8 +46,8 @@ int pre_assemble(FILE *f, FILE *write, char *name){
             error = 1;
             continue;
         }
-        *lp = 0;
-        if(!getword(word, line, lp)){ /*use getword to put the first word in the line in word and check if line is empty*/
+        lp = 0;
+        if(!getword(word, line, &lp)){ /*use getword to put the first word in the line in word and check if line is empty*/
             continue; /*ignore*/
         }
         if(word[0] == ';'){ /*check if line is note*/
@@ -58,7 +58,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
             continue; 
         }
         if(strcmp(word, "mcro") == 0){ /*if first word is a macro decleration*/
-            getword(macroName, line, lp); /*place the next word in macroName*/
+            getword(macroName, line, &lp); /*place the next word in macroName*/
             if(gettype(macroName, &commandType)){ /*make sure new macro's name isnt a command*/
                 err("error: a macro cannot have the same name as a command");
                 error = 1;
@@ -71,7 +71,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
             }
             mcro=1; /*we set mcro flag to 1*/
             while(fgets(line, MAXLINE, f)){ /*and start another loop to get the content of the macro*/ 
-                getword(word,line, lp); /*we get the first word in word*/
+                getword(word,line, &lp); /*we get the first word in word*/
                 if(word[0] == '\0' || strcmp(word, "mcroend") == 0){
                     install(macroName, macroContent, macrotab); /*add the macro to macrotab*/
                     line_count = 0; /*reset line count*/

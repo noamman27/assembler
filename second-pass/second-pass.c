@@ -74,31 +74,31 @@ static int add_entry_attr(symbol *s, char *sym_name){
      data → ICF .. ICF+DCF-1
      (data symbol values already shifted by ICF in first-pass step 19)
 ═══════════════════════════════════════════════════════════════════════════ */
-static void write_ob(char *basename){
+static void write_ob(char *basename, int *code_image, int icf, int dcf, char *data_image){
     char filename[MAXLINE];
     snprintf(filename, sizeof(filename), "%s.ob", basename);
     FILE *f = fopen(filename, "w");
     if(!f){ fprintf(stderr, "error: cannot open %s\n", filename); return; }
 
     /* header: number of instructions, number of data bytes */
-    fprintf(f, "   %d %d\n", (ICF - IC_START) / 4, DCF);
+    fprintf(f, "   %d %d\n", (icf - IC_START) / 4, dcf);
 
     int i;
-    /* code section: one int per instruction at data_image[IC_START], [IC_START+4] ... */
-    for(i = IC_START; i < ICF; i += 4){
-        unsigned int word = (unsigned int)data_image[i];
+    /* code section: one int per instruction at code_image[0], [1] ... */
+    for(i = 0; i < (icf - IC_START) / 4; i++){
+        unsigned int word = (unsigned int)code_image[i];
         fprintf(f, "%04d %08X\n", i, word);
     }
     /* data section: bytes stored at data_image[0..DCF-1],
-       but printed at output addresses ICF .. ICF+DCF-1                      */
-    for(i = 0; i < DCF; i++){
-        fprintf(f, "%04d %02X\n", ICF + i, (unsigned char)data_image[i]);
+       but printed at output addresses icf .. icf+dcf-1                      */
+    for(i = 0; i < dcf; i++){
+        fprintf(f, "%04d %02X\n", icf + i, (unsigned char)data_image[i]);
     }
     fclose(f);
 }
 
 /* .ent file: one line per entry symbol — only written if entries exist      */
-static void write_ent(char *basename, Symbol *symboltab){
+static void write_ent(char *basename, symbol *symboltab){
     int has_entry = 0;
     symbol *s = symboltab;
     while(s){
@@ -144,7 +144,7 @@ static void write_ext(char *basename){
    basename — filename base for output files (.ob / .ent / .ext)
    returns 1 on success, 0 if any error found
 ═══════════════════════════════════════════════════════════════════════════ */
-int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, Symbol *symboltab, char *data_image){
+int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, symbol *symboltab, char *data_image){
     char line[MAXLINE];
     char word[MAXLINE];
     char sym[MAXLINE];
@@ -261,7 +261,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
     }
 
     /* step 10: write output files                                             */
-    write_ob(basename);
+    write_ob(basename, code_image, icf, dcf, data_image);
     write_ent(basename, symboltab);
     write_ext(basename);
 

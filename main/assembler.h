@@ -17,12 +17,12 @@
 #define IMMED    -3         /* getparam: operand was an immediate value        */
 
 /*max sizes*/
-#define MAX_HALF_WORD pow(2, 15) - 1
-#define MIN_HALF_WORD -1 * pow(2, 15)
-#define MAX_BYTE pow(2, 7) - 1
-#define MIN_BYTE -1 * pow(2, 7)
-#define MAX_WORD pow(2, 31) - 1
-#define MIN_WORD -1 * pow(2, 31)
+#define MAX_HALF_WORD 32767
+#define MIN_HALF_WORD -32768
+#define MAX_BYTE 127
+#define MIN_BYTE -128
+#define MAX_WORD 2147483647
+#define MIN_WORD (-2147483647 - 1)
 
 /* ── Error macro ── */
 #define err(s) fprintf(stderr, "%s\n", (s))
@@ -54,27 +54,19 @@ typedef struct{
     unsigned int opcode:  6; /* operation code (0 or 1 for R-type)           */
 } R_BF;
 
-/* ── Symbol table entry ── */
-typedef struct {
-    char          *name;      /* label name string                            */
-    int            value;     /* address of the symbol in memory              */
-    char          *attribute; /* "code", "data", "external", or "entry"       */
-    Symbol *next;      /* next node in the linked list                 */
-} Symbol;
-
 /* ── Function declarations ── */
 
 /* pre-assembler/pre-assembler.c */
 int     pre_assemble(FILE *f, FILE *write, char *name);
 
 /* first-pass/first-pass.c */
-int     first_pass(FILE *f, char *name, nlist *macrotab);
+int     first_pass(FILE *f, char *name, nlist *macrotab[]);
 
 /* second-pass/second-pass.c */
-int     second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, Symbol *symboltab, char *data_image);
+int     second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, symbol *symboltab, char *data_image);
 
 /* lib/table.c — symbol table */
-int add_symbol(const char *name, int value, char *attribute, symbol *symboltab);
+int add_symbol(const char *name, int value, char *attribute, symbol **symboltab);
 symbol *lookup_symbol(char *name, symbol *symboltab);
 void update_symbols(int icf , symbol *symboltab);
 

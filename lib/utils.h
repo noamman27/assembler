@@ -9,17 +9,19 @@ typedef struct nlist {
     struct nlist *next;
 } nlist;
 
-typedef struct{
+typedef struct symbol {
     char *name;
     char *attribute;
     int value;
-    Symbol *next;
+    struct symbol *next;
 } symbol;
+
+typedef symbol Symbol;
 
 unsigned hash(char *s, nlist *hashtab[]);
 nlist *lookup(char *s, nlist *hashtab[]);
 nlist *install(char *name, char *defn, nlist *hashtab[]);
-int add_symbol(const char *name, int value, char *attribute, symbol *symboltab);
+int add_symbol(const char *name, int value, char *attribute, symbol **symboltab);
 symbol *lookup_symbol(char *name, symbol *symboltab);
 int getword(char word[], char line[], int *lp);
 int gettype(char *s, char *t);
