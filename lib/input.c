@@ -7,7 +7,7 @@
 /*gets all the parameters in line.
 * puts the type of the parameter (register, immediate, label) in types
 * returns the amount of parameters the function found*/
-int getparams(char line[], int *lp, char *params[], int types[]){
+int getparams(char line[], int *lp, char *params[], int types[], int lc){
     char c, param[MAXLINE], tmp[MAXLINE];
     int reg, comma = 0, i = 0;
     if(!getch(line, &c, lp)){ /*grab first char of the params*/
@@ -66,7 +66,7 @@ int getparams(char line[], int *lp, char *params[], int types[]){
 }
 
 /*gets a single parameter from the line and classifies it as register, immediate, or symbol*/
-int getparam(char line[], int *lp, char sym[], int *immed){
+int getparam(char line[], int *lp, char sym[], int *immed, int lc){
     char c, param[MAXLINE];
     int len;
 

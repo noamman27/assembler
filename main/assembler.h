@@ -25,7 +25,7 @@
 #define MIN_WORD (-2147483647 - 1)
 
 /* ── Error macro ── */
-#define err(s) fprintf(stderr, "%s\n", (s))
+#define err(s) fprintf(stderr, "error in line %d: %s\n",lc ,(s))
 
 /* ── Bit fields ── */
 

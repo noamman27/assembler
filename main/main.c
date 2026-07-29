@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){
             tmp++;
         }
         if(strcmp(tmp, "as")){ /*check the file extension to ensuer we were given a .as file*/
-            err("error: the program must be given a file ending with .as");
+            fprintf(stderr, "error: the program must be given a file ending with .as");
             continue;
         }
         name[j - 1] = '\0';/*close the string without including the .*/

@@ -29,7 +29,7 @@ int isR(char *s);
 int isI(char *s);
 int isJ(char *s);
 int isnum(char *s);
-int getparams(char line[], int *lp, char *params[], int types[]);
+int getparams(char line[], int *lp, char *params[], int types[], int lc);
 int isarithorlog(char *s);
 int iscond(char *s);
 int isloading(char *s);
@@ -59,4 +59,4 @@ extern RCommand rCommands[];
 extern ICommand iCommands[];
 extern JCommand jCommands[];
 
-#endif 
+#endif

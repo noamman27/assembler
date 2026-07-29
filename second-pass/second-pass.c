@@ -18,9 +18,9 @@ typedef struct ext_ref {
 
 static ExtRef *ext_refs = NULL;
 
-static void add_ext_ref(char *name, int address){
+static void add_ext_ref(char *name, int address, int lc){
     ExtRef *e = (ExtRef *)malloc(sizeof(ExtRef));
-    if(!e){ err("error: malloc failed in add_ext_ref"); return; }
+    if(!e){ err("malloc failed in add_ext_ref"); return; }
     e->name    = strdup(name);
     e->address = address;
     e->next    = ext_refs;
@@ -46,7 +46,7 @@ static void free_ext_refs(void){
      "external" → ERROR (external symbols cannot be entry points)
    the old attribute string is NOT freed because it may be a string literal.
 ───────────────────────────────────────────────────────────────────────── */
-static int add_entry_attr(symbol *s, char *sym_name){
+static int add_entry_attr(symbol *s, char *sym_name, int lc){
     if(strcmp(s->attribute, "external") == 0){
         fprintf(stderr, "error: symbol '%s' is external and cannot be .entry\n", sym_name);
         return 0;
@@ -56,7 +56,7 @@ static int add_entry_attr(symbol *s, char *sym_name){
 
     /* build "original, entry" string */
     char *combined = (char *)malloc(strlen(s->attribute) + 9); /* ", entry\0" = 8 chars */
-    if(!combined){ err("error: malloc failed in add_entry_attr"); return 0; }
+    if(!combined){ err("malloc failed in add_entry_attr"); return 0; }
     sprintf(combined, "%s, entry", s->attribute);
     s->attribute = combined;   /* replace with combined — original was a literal, safe to discard */
     return 1;
@@ -155,12 +155,13 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
     int  ip     = 0;        /*instuction pointer - same as in first pass*/
     int  reg;
     int  immed;
+    int lc      = 0;
     char type;
 
     rewind(input); /* step 1 setup: go back to beginning of pre-assembled file */
 
     while(fgets(line, MAXLINE, input) != NULL){ /* step 1: read next line     */
-
+        lc++;
         lp = 0;
 
         /* step 2: skip comment lines */
@@ -181,7 +182,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
         if(strcmp(word, ".entry") == 0){
             lp = 0;
             if(getword(sym, line, &lp) == 0){
-                err("error: no symbol given to .entry");
+                err("no symbol given to .entry");
                 error = 1;
                 continue;
             }
@@ -192,7 +193,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
                 continue;
             }
             /* step 6: append "entry" to existing attribute (e.g. "data" → "data, entry") */
-            if(!add_entry_attr(s, sym)){
+            if(!add_entry_attr(s, sym, lc)){
                 error = 1;
             }
             continue;
@@ -244,7 +245,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
                     memcpy(&data_image[ip], &jbf, sizeof(jbf));
                     /* step 8: if external, record the reference              */
                     if(strcmp(s->attribute, "external") == 0)
-                        add_ext_ref(sym, ic);
+                        add_ext_ref(sym, ic, lc);
                 }
             }
             /* reg > 0: register operand (jmp $N) — already encoded in pass 1 */

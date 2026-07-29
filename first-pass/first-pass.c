@@ -8,18 +8,19 @@
 symbol *symboltab = NULL, *sp; /* head of the symbol table linked list */
 int IC = IC_START, DC = 0, ICF, DCF, ip; /*line pointer, IC, DC, and their final values, as well as an instruction pointer (current location in code_image), which is used instead of IC to cut down on memory*/
 
-static int handle_data(char line[], char word[], char *data_image, int *lp, int isSym, char *sym);
-static int encode_command(char line[], char word[], int *code_image, int *lp, char type);
+static int handle_data(char line[], char word[], char *data_image, int *lp, int isSym, char *sym, int lc);
+static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc);
 
 int first_pass(FILE *input, char *name, nlist *macrotab[]){
     char line[MAXLINE], word[MAXLINE], sym[MAXLINE], type, *data_image; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, type of command, and array to hold parameters*/
-    int isSym = 0, len, error = 0, lp = 0, status, *code_image;
+    int isSym = 0, len, error = 0, lp = 0, status, *code_image, lc = 0;
     void *tmpbuf;
 
     code_image = (int *)malloc(sizeof(int));
     data_image = (char *)malloc(sizeof(char));
     ip = 0;
     while(fgets(line, MAXLINE, input) != NULL){ /*run as long as we can read more from file*/
+        lc++;
         lp = 0, isSym = 0; /*reset line pointer and isSym flag*/
         if(line[0] == ';' || ((len = getword(word, line, &lp)) == 0)){ /*check if line is omment or empty; if so we ignore it*/
             continue;
@@ -33,12 +34,12 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
                 continue;
             }
             if(lookup(word, macrotab)){ /*check if label was already defined as a macro*/
-                err("error: a label cannot have the same name as a macro");
+                err("a label cannot have the same name as a macro");
                 error = 1;
                 continue;
             }
             if(gettype(word, &type)){ /*check if label name is a command*/
-                err("error: a label cannot habe the same name as a command");
+                err("a label cannot habe the same name as a command");
                 error = 1;
                 continue;
             }
@@ -47,7 +48,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
             getword(word, line, &lp); /*and get the next word*/
         }
         /*handle data instructions*/
-        if((status = handle_data(line, word, data_image, &lp, isSym, sym)) == 1){
+        if((status = handle_data(line, word, data_image, &lp, isSym, sym, lc)) == 1){
             /*function handled data so we continue*/
             continue;
         }
@@ -64,7 +65,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
         }
         if(strcmp(word, ".extern") == 0){
             if(!getword(word, line, &lp)){
-                err("error: no symbol given as parameter for .extern");
+                err("no symbol given as parameter for .extern");
                 error = 1;
                 continue;
             }
@@ -74,7 +75,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
                 continue;
             }
             if(gettype(word, &type)){
-                err("error: a label cannot habe the same name as a command");
+                err("a label cannot habe the same name as a command");
                 error = 1;
                 continue;
             }
@@ -87,11 +88,11 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
             add_symbol(word, 0, "external", &symboltab);
         }
         if(!gettype(word,&type)){
-            err("error: command not recognized");
+            err("command not recognized");
         }
         /*handle encoding of commands*/
         /*for all commands we get the parameters using getparams, and ensure we got the correct amount and type of parameters, and put the parameters in the correct location*/
-        if(!encode_command(line, word, code_image, &lp, type)){
+        if(!encode_command(line, word, code_image, &lp, type, lc)){
             error = 1;
             continue;
         }
@@ -102,7 +103,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
         }
         tmpbuf = realloc(code_image, (ip + 1) * sizeof(int)); /*realloc the array*/
         if(!tmpbuf){ /*ensure success*/
-            err("error: realloc failed");
+            err("realloc failed");
             error = 1;
             continue;
         }
@@ -122,27 +123,27 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
 }
 
 /*hadnles the data instructions, takes the line, the word, the data image, line pointer, whether a label is being defined, and the name of the label. return 1 on success, 0 of error, and -1 if the word isnt a data instruction*/
-static int handle_data(char line[], char word[], char *data_image, int *lp, int isSym, char *sym){
+static int handle_data(char line[], char word[], char *data_image, int *lp, int isSym, char *sym, int lc){
     int count, types[MAXLINE], i, j, len;
     char *tmpbuf;
     char *params[MAXLINE], *tmp;
     if(strcmp(word, ".dh") == 0 ) {
-    count = getparams(line, lp, params, types);
+    count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
         add_symbol(sym, DC, "data", &symboltab);
     }
     for(i = 0; i<count; i++){
         if(types[i] != IMMED){
-            err("error: .dh only accepts numbers");
+            err(".dh only accepts numbers");
             return 0;
         }
         if(atoi(params[i]) > MAX_HALF_WORD || atoi(params[i]) MIN_HALF_WORD){
-            err("error: number given to .dh exceeds values representable");
+            err("number given to .dh exceeds values representable");
             return 0;
         }
         tmp = (char *) realloc(data_image, DC += HALF_WORD);
         if(!tmp){
-            err("error: realloc failed");
+            err("realloc failed");
             return 0;
         }
         data_image = tmp;
@@ -152,22 +153,22 @@ static int handle_data(char line[], char word[], char *data_image, int *lp, int 
     }
 }
 else if(strcmp(word, ".db") == 0){
-    count = getparams(line, lp, params, types);
+    count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
         add_symbol(sym, DC, "data", &symboltab);
     }
     for(i = 0; i<count; i++){
         if(types[i] != IMMED){
-            err("error: .dh only accepts numbers");
+            err(".dh only accepts numbers");
             return 0;
         }
         if(atoi(params[i]) > MAX_BYTE || atoi(params[i]) MIN_BYTE){
-            err("error: number given to .dh exceeds values representable");
+            err("number given to .dh exceeds values representable");
             return 0;
         }
         tmp = (char *) realloc(data_image, DC += 1);
         if(!tmp){
-            err("error: realloc failed");
+            err("realloc failed");
             return 0;
         }
         data_image = tmp;
@@ -175,22 +176,22 @@ else if(strcmp(word, ".db") == 0){
     }
 }
 else if(strcmp(word, ".dw") == 0){
-    count = getparams(line, lp, params, types);
+    count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
         add_symbol(sym, DC, "data", &symboltab);
     }
     for(i = 0; i<count; i++){
         if(types[i] != IMMED){
-            err("error: .dh only accepts numbers");
+            err(".dh only accepts numbers");
             return 0;
         }
         if(atoi(params[i]) > MAX_WORD || atoi(params[i]) < MIN_WORD){
-            err("error: number given to .dh exceeds values representable");
+            err("number given to .dh exceeds values representable");
             return 0;
         }
         tmp = (char *) realloc(data_image, DC += WORD);
         if(!tmp){
-            err("error: realloc failed");
+            err("realloc failed");
             return 0;
         }
         data_image = tmp;
@@ -202,7 +203,7 @@ else if(strcmp(word, ".dw") == 0){
 }
     else if(strcmp(word, ".asciz") == 0){
         if(!(len = getword(word, line, lp))){ /*get parameter and save its length into len*/
-            err("error: no string given to .asciz");
+            err("no string given to .asciz");
             return 0;
         }
         if(isSym){ 
@@ -210,12 +211,12 @@ else if(strcmp(word, ".dw") == 0){
         }
         for(i = 0; i < len; i++){
             if(isdigit(word[i])){
-                err("error: digit given to .asciz");
+                err("digit given to .asciz");
                 return 0;
             }
         }
         if(word[0] !='"' || word[len-2] != '"'){
-            err("error: string given to .asciz is not valid");
+            err("string given to .asciz is not valid");
             return 0;
         }
         remove_quotes(word);
@@ -223,7 +224,7 @@ else if(strcmp(word, ".dw") == 0){
         DC += len + 1;
         tmpbuf = realloc(data_image, DC * sizeof(*data_image));
         if(!tmpbuf){
-            err("error: realloc failed");
+            err("realloc failed");
             return 0;
         }
         data_image = tmpbuf;
@@ -238,7 +239,7 @@ else if(strcmp(word, ".dw") == 0){
     }
 }
 /*hadnles the encoding of commands, takes the line, the word, the code image, line pointer, snd command type. returns 1 on success amnd 0 on error*/
-static int encode_command(char line[], char word[], int *code_image, int *lp, char type){
+static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc){
     int count, types[MAXLINE];
     char *params[MAXLINE];
     R_BF rc_bf;
@@ -249,66 +250,66 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
     case 'r':
         if(count_params(word) == 2){
             rc_bf.rs = 0;
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to move command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to move command");
                 return 0;
             }
             if(count > 2){
-                err("error: too many parameters given to move command");
+                err("too many parameters given to move command");
                 return 0;
             }
             else if(count < 2){
-                err("error: not enough parameters given to move command");
+                err("not enough parameters given to move command");
             }
             if(types[0] !=  REG){
-                err("error: a move command cannot be given a parmeter that is not a register");
+                err("a move command cannot be given a parmeter that is not a register");
                 return 0;
             }
             rc_bf.rd = atoi(params[0]);
-            if(!getparams(line, lp, params, types)){
-                err("error: missing parameter");
+            if(!getparams(line, lp, params, types, lc)){
+                err("missing parameter");
                 return 0;
             }
             if(types[1] !=  REG){
-                err("error: a move command cannot be given a parmeter that is not a register");
+                err("a move command cannot be given a parmeter that is not a register");
                 return 0;
             }
             rc_bf.rt = atoi(params[1]);
             rc_bf.opcode = 1;
             rc_bf.funct = getfunct(word);
         } else {
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to arithmatic or logical R command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to arithmatic or logical R command");
                 return 0;
             }
             if(count > 3){
-                err("error: too many parameters given to arithmatic or logical R command");
+                err("too many parameters given to arithmatic or logical R command");
                 return 0;
             }
             else if(count < 3){
-                err("error: not enough parameters given to arithmatic or logical R command");
+                err("not enough parameters given to arithmatic or logical R command");
                 return 0;
             }
             if(types[0] !=  REG){
-                err("error: an arithmatic or logical R command cannot be given a parmeter that is not a register");
+                err("an arithmatic or logical R command cannot be given a parmeter that is not a register");
                 return 0;
             }
             rc_bf.rs = atoi(params[0]);
-            if(!getparams(line, lp, params, types)){
-                err("error: missing parameter");
+            if(!getparams(line, lp, params, types, lc)){
+                err("missing parameter");
                 return 0;
             }
             if(types[1] !=  REG){
-                err("error: an arithmatic or logical R command cannot be given a parmeter that is not a register");
+                err("an arithmatic or logical R command cannot be given a parmeter that is not a register");
                 return 0;
             }
             rc_bf.rt = atoi(params[1]);
-            if(!getparams(line, lp, params, types)){
-                err("error: missing parameter");
+            if(!getparams(line, lp, params, types, lc)){
+                err("missing parameter");
                 return 0;
             }
             if(types[1] !=  REG){
-                err("error: an arithmatic or logical R command cannot be given a parmeter that is not a register");
+                err("an arithmatic or logical R command cannot be given a parmeter that is not a register");
                 return 0;
             }
             rc_bf.rd = atoi(params[1]);
@@ -321,38 +322,38 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
     case 'i':
         /*handle arithmatic or logical commands*/
         if(isarithorlog(word)){
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to arithmatic or logical I command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to arithmatic or logical I command");
                 return 0;
             }
             if(count > 3){
-                err("error: too many parameters given to arithmatic or logical I command");
+                err("too many parameters given to arithmatic or logical I command");
                 return 0;
             }
             else if(count < 3){
-                err("error: not enough parameters given to arithmatic or logical I command");
+                err("not enough parameters given to arithmatic or logical I command");
                 return 0;
             }
             if(types[0] !=  REG){
-                err("error: an arithmatic or logical I command should be given a register, an immediate value, and another register");
+                err("an arithmatic or logical I command should be given a register, an immediate value, and another register");
                 return 0;
             }
             ic_bf.rs = atoi(params[0]);
-            if(!getparams(line, lp, params, types)){
-                err("error: missing parameter");
+            if(!getparams(line, lp, params, types, lc)){
+                err("missing parameter");
                 return 0;
             }
             if(types[1] !=  IMMED){
-                err("error: an arithmatic or logical I command should be given a register, an immediate value, and another register");
+                err("an arithmatic or logical I command should be given a register, an immediate value, and another register");
                 return 0;
             }
             ic_bf.immed = atoi(params[1]);
-            if(!getparams(line, lp, params, types)){
-                err("error: missing parameter");
+            if(!getparams(line, lp, params, types, lc)){
+                err("missing parameter");
                 return 0;
             }
             if(types[2] !=  REG){
-                err("error: an arithmatic or logical I command should be given a register, an immediate value, and another register");
+                err("an arithmatic or logical I command should be given a register, an immediate value, and another register");
                 return 0;
             }
             ic_bf.rt = atoi(params[2]);
@@ -360,38 +361,38 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
         }
         /*handle conditional commands*/
         if(iscond(word)){
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to conditional I command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to conditional I command");
                 return 0;
             }
             if(count > 3){
-                err("error: too many parameters given to conditional I command");
+                err("too many parameters given to conditional I command");
                 return 0;
             }
             else if(count < 3){
-                err("error: not enough parameters given to conditional I command");
+                err("not enough parameters given to conditional I command");
                 return 0;
             }
             if(types[0] !=  REG){
-                err("error: a conditional I command needs 2 registers and a label");
+                err("a conditional I command needs 2 registers and a label");
                 return 0;
             }
             ic_bf.rs = atoi(params[0]);
-            if(!getparams(line, lp, params, types)){
-                err("error: no parameter given to R command");
+            if(!getparams(line, lp, params, types, lc)){
+                err("no parameter given to R command");
                 return 0;
             }
             if(types[1] !=  REG){
-                err("error: a conditional I command needs 2 registers and a label");
+                err("a conditional I command needs 2 registers and a label");
                 return 0;
             }
             ic_bf.rt = atoi(params[1]);
-            if(!getparams(line, lp, params, types)){
-                err("error: no parameter given to I command");
+            if(!getparams(line, lp, params, types, lc)){
+                err("no parameter given to I command");
                 return 0;
             }
             if(types[2] !=  SYM){
-                err("error: a conditional I command needs 2 registers and a label");
+                err("a conditional I command needs 2 registers and a label");
                 return 0;
             }
             ic_bf.rt = 0;
@@ -399,38 +400,38 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
         }
         /*handle memory loading or saving commands*/
         if(isloading(word)){
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to memory loading I command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to memory loading I command");
                 return 0;
             }
             if(count > 3){
-                err("error: too many parameters given to memory loading I command");
+                err("too many parameters given to memory loading I command");
                 return 0;
             }
             else if(count < 3){
-                err("error: not enough parameters given to memory loading I command");
+                err("not enough parameters given to memory loading I command");
                 return 0;
             }
             if(types[0] !=  REG){
-                err("error: a memory loading or saving I command should be given a register, an immediate value, and another register");
+                err("a memory loading or saving I command should be given a register, an immediate value, and another register");
                 return 0;
             }
             ic_bf.rs = atoi(params[0]);
-            if(!getparams(line, lp, params, types)){
-                err("error: missing parameter");
+            if(!getparams(line, lp, params, types, lc)){
+                err("missing parameter");
                 return 0;
             }
             if(types[1] !=  IMMED){
-                err("error: a memory loading or saving I command should be given a register, an immediate value, and another register");
+                err("a memory loading or saving I command should be given a register, an immediate value, and another register");
                 return 0;
             }
             ic_bf.immed = atoi(params[1]);
-            if(!getparams(line, lp, params, types)){
-                err("error: missing parameter");
+            if(!getparams(line, lp, params, types, lc)){
+                err("missing parameter");
                 return 0;
             }
             if(types[2] !=  REG){
-                err("error: a memory loading or saving I command should be given a register, an immediate value, and another register");
+                err("a memory loading or saving I command should be given a register, an immediate value, and another register");
                 return 0;
             }
             ic_bf.rt = atoi(params[2]);
@@ -441,12 +442,12 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
         break;
     case 'j':
         if(strcmp(word, "jmp") == 0){
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to jmp command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to jmp command");
                 return 0;
             }
             if(count > 1){
-                err("error: too many parameters given to jmp command");
+                err("too many parameters given to jmp command");
                 return 0;
             }
             if(types[0] == SYM){
@@ -459,17 +460,17 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 jc_bf.address = atoi(params[0]);
             }
             else{
-                err("error: an immediate value cannot be given to a jmp command");
+                err("an immediate value cannot be given to a jmp command");
                 return 0;
             }
             }
         else if(strcmp(word, "la") == 0){
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to la command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to la command");
                 return 0;
             }
             if(count > 1){
-                err("error: too many parameters given to la command");
+                err("too many parameters given to la command");
                 return 0;
             }
             if(types[0] == SYM){
@@ -477,19 +478,19 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 jc_bf.reg = 0;
             }
             else{
-                err("error: an la command must be given a label");
+                err("an la command must be given a label");
                 return 0;
             }
             jc_bf.opcode = 31;
             jc_bf.reg = 0;
             }
         else if(strcmp(word, "call") == 0){
-            if(!(count = getparams(line, lp, params, types))){
-                err("error: no parameter given to call command");
+            if(!(count = getparams(line, lp, params, types, lc))){
+                err("no parameter given to call command");
                 return 0;
             }
             if(count > 1){
-                err("error: too many parameters given to call command");
+                err("too many parameters given to call command");
                 return 0;
             }
             if(types[0] == SYM){
@@ -497,15 +498,15 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 jc_bf.reg = 0;
             }
             else{
-                err("error: a call command must be given a label");
+                err("a call command must be given a label");
                 return 0;
             }
             jc_bf.opcode = 32;
             jc_bf.reg = 0;
             }
         else if(strcmp(word, "hlt") == 0){
-            if(getparams(line, lp, params, types)){
-                err("error: no parameters should be given to an hlt command");
+            if(getparams(line, lp, params, types, lc)){
+                err("no parameters should be given to an hlt command");
                 return 0;
             }
             jc_bf.opcode = 63;

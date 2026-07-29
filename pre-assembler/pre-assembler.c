@@ -35,15 +35,19 @@ static int append_text(char **buffer, size_t *capacity, size_t *length, const ch
 /*gets file *f and *write. reads f writes a pre assembled version to write. deployes all macros in f*/
 int pre_assemble(FILE *f, FILE *write, char *name){
     char line[MAXLINE], word[MAXLINE], macroName[MAXLINE], *macroContent = NULL, commandType;
-    int lp = 0, error = 0;
+    int lp = 0, error = 0, lc = 0;
     size_t macroContentCap = 0;
     size_t macroContentLen = 0;
     int mcro, line_count = 0; /*initialize mcro flag and line count that is set to 0*/
     nlist *np; 
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
+        lc++;
         if(!lineend(line)){
             err("error: line is longer than 80 chars");
             error = 1;
+            do{ /*clear the rest of the line*/
+                fgets(line, MAXLINE, f);
+            } while(!lineend(line));
             continue;
         }
         lp = 0;
