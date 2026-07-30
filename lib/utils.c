@@ -175,6 +175,21 @@ void remove_quotes(char *s){
     s[j] = '\0';
 }
 
+char *dupstr(const char *s){
+    char *copy;
+    size_t len;
+
+    if(s == NULL){
+        return NULL;
+    }
+    len = strlen(s) + 1;
+    copy = (char *)malloc(len);
+    if(copy != NULL){
+        memcpy(copy, s, len);
+    }
+    return copy;
+}
+
 /*checks if a given line ends (has a newline char)*/
 int lineend(char *s){
     while(*s){

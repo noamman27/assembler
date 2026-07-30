@@ -42,6 +42,7 @@ int getword(char word[], char line[], int *lp);
 int getparam(char line[], int *lp, char sym[], int *immed, int lc);
 int getch(char buffer[], char *ch, int *lp);
 int ungetch(char buffer[], char c, int *lp);
+char *dupstr(const char *s);
 
 typedef struct {
     char *name;

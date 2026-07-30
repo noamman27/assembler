@@ -98,12 +98,11 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
             error = 1;
             continue;
         }
-        ip++;
-        IC+=4;
-        DC+=2;
         if(isSym){
             add_symbol(sym, IC, "code", &symboltab);
         }
+        ip++;
+        IC+=4;
         tmpbuf = realloc(code_image, (ip + 1) * sizeof(int)); /*realloc the array*/
         if(!tmpbuf){ /*ensure success*/
             err("realloc failed");
@@ -128,9 +127,12 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
 
 /*hadnles the data instructions, takes the line, the word, the data image, line pointer, whether a label is being defined, and the name of the label. return 1 on success, 0 of error, and -1 if the word isnt a data instruction*/
 static int handle_data(char line[], char word[], char *data_image, int *lp, int isSym, char *sym, int lc){
-    int count, types[MAXLINE], i, j, len;
+    int count, types[MAXLINE], i, len;
     char *tmpbuf;
     char *params[MAXLINE], *tmp;
+    char *endptr;
+    long val;
+    unsigned int uval;
     if(strcmp(word, ".dh") == 0 ) {
     count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
@@ -141,23 +143,20 @@ static int handle_data(char line[], char word[], char *data_image, int *lp, int 
             err(".dh only accepts numbers");
             return 0;
         }
-        {
-            char *endptr;
-            long val = strtol(params[i], &endptr, 10);
-            if(*endptr != '\0' || val > MAX_HALF_WORD || val < MIN_HALF_WORD){
-                err("number given to .dh exceeds values representable");
-                return 0;
-            }
+        val = strtol(params[i], &endptr, 10);
+        if(*endptr != '\0' || val > MAX_HALF_WORD || val < MIN_HALF_WORD){
+            err("number given to .dh exceeds values representable");
+            return 0;
         }
+        uval = (unsigned int)val;
         tmp = (char *) realloc(data_image, DC += HALF_WORD);
         if(!tmp){
             err("realloc failed");
             return 0;
         }
         data_image = tmp;
-        for(j = 0; j < HALF_WORD; j++){ /*add data to data image*/
-            data_image[DC - (HALF_WORD - j)] = (char) atoi(params[i]) << 8*j;
-        }
+        data_image[DC - 2] = (unsigned char)(uval & 0xFF);
+        data_image[DC - 1] = (unsigned char)((uval >> 8) & 0xFF);
     }
     return 1;
 }
@@ -171,21 +170,19 @@ else if(strcmp(word, ".db") == 0){
             err(".db only accepts numbers");
             return 0;
         }
-        {
-            char *endptr;
-            long val = strtol(params[i], &endptr, 10);
-            if(*endptr != '\0' || val > MAX_BYTE || val < MIN_BYTE){
-                err("number given to .db exceeds values representable");
-                return 0;
-            }
+        val = strtol(params[i], &endptr, 10);
+        if(*endptr != '\0' || val > MAX_BYTE || val < MIN_BYTE){
+            err("number given to .db exceeds values representable");
+            return 0;
         }
+        uval = (unsigned int)val;
         tmp = (char *) realloc(data_image, DC += 1);
         if(!tmp){
             err("realloc failed");
             return 0;
         }
         data_image = tmp;
-        data_image[DC - 1] = atoi(params[i]);
+        data_image[DC - 1] = (unsigned char)(uval & 0xFF);
     }
     return 1;
 }
@@ -199,23 +196,22 @@ else if(strcmp(word, ".dw") == 0){
             err(".dw only accepts numbers");
             return 0;
         }
-        {
-            char *endptr;
-            long val = strtol(params[i], &endptr, 10);
-            if(*endptr != '\0' || val > MAX_WORD || val < MIN_WORD){
-                err("number given to .dw exceeds values representable");
-                return 0;
-            }
+        val = strtol(params[i], &endptr, 10);
+        if(*endptr != '\0' || val > MAX_WORD || val < MIN_WORD){
+            err("number given to .dw exceeds values representable");
+            return 0;
         }
+        uval = (unsigned int)val;
         tmp = (char *) realloc(data_image, DC += WORD);
         if(!tmp){
             err("realloc failed");
             return 0;
         }
         data_image = tmp;
-        for(j = 0; j < WORD; j++){ /*add data to data image*/
-            data_image[DC - (WORD - j)] = (char) atoi(params[i]) << 8*j;
-        }
+        data_image[DC - 4] = (unsigned char)(uval & 0xFF);
+        data_image[DC - 3] = (unsigned char)((uval >> 8) & 0xFF);
+        data_image[DC - 2] = (unsigned char)((uval >> 16) & 0xFF);
+        data_image[DC - 1] = (unsigned char)((uval >> 24) & 0xFF);
     }
     return 1;
 }
@@ -263,11 +259,12 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
+    unsigned int word_value;
+    word_value = 0;
     switch (type)
     {
     case 'r':
         if(count_params(word) == 2){
-            rc_bf.rs = 0;
             if(!(count = getparams(line, lp, params, types, lc))){
                 err("no parameter given to move command");
                 return 0;
@@ -284,10 +281,17 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("a move command requires two registers");
                 return 0;
             }
-            rc_bf.rd = atoi(params[0]);
-            rc_bf.rt = atoi(params[1]);
+            rc_bf.rs = atoi(params[0]);
+            rc_bf.rt = 0;
+            rc_bf.rd = atoi(params[1]);
             rc_bf.opcode = 1;
             rc_bf.funct = getfunct(word);
+            word_value = ((unsigned int)rc_bf.opcode << 26)
+                       | ((unsigned int)rc_bf.rs << 21)
+                       | ((unsigned int)rc_bf.rt << 16)
+                       | ((unsigned int)rc_bf.rd << 11)
+                       | ((unsigned int)rc_bf.funct << 6);
+            code_image[ip] = (int)word_value;
         } else {
             if(!(count = getparams(line, lp, params, types, lc))){
                 err("no parameter given to arithmatic or logical R command");
@@ -310,8 +314,13 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             rc_bf.rd = atoi(params[2]);
             rc_bf.opcode = 0;
             rc_bf.funct = getfunct(word);
+            word_value = ((unsigned int)rc_bf.opcode << 26)
+                       | ((unsigned int)rc_bf.rs << 21)
+                       | ((unsigned int)rc_bf.rt << 16)
+                       | ((unsigned int)rc_bf.rd << 11)
+                       | ((unsigned int)rc_bf.funct << 6);
+            code_image[ip] = (int)word_value;
         }
-        memcpy(&code_image[ip], &ic_bf, sizeof(ic_bf)); /*add to code image*/
         return 1;
         break;
     case 'i':
@@ -337,6 +346,10 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             ic_bf.immed = atoi(params[1]);
             ic_bf.rt = atoi(params[2]);
             ic_bf.opcode = getopcode(word);
+            word_value = ((unsigned int)ic_bf.opcode << 26)
+                       | ((unsigned int)ic_bf.rs << 21)
+                       | ((unsigned int)ic_bf.rt << 16)
+                       | ((unsigned int)(unsigned short)ic_bf.immed);
         }
         /*handle conditional commands*/
         if(iscond(word)){
@@ -357,8 +370,12 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 return 0;
             }
             ic_bf.rs = atoi(params[0]);
-            ic_bf.rt = 0;
+            ic_bf.rt = atoi(params[1]);
             ic_bf.opcode = getopcode(word);
+            ic_bf.immed = 0;
+            word_value = ((unsigned int)ic_bf.opcode << 26)
+                       | ((unsigned int)ic_bf.rs << 21)
+                       | ((unsigned int)ic_bf.rt << 16);
         }
         /*handle memory loading or saving commands*/
         if(isloading(word)){
@@ -382,8 +399,12 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             ic_bf.immed = atoi(params[1]);
             ic_bf.rt = atoi(params[2]);
             ic_bf.opcode = getopcode(word);
+            word_value = ((unsigned int)ic_bf.opcode << 26)
+                       | ((unsigned int)ic_bf.rs << 21)
+                       | ((unsigned int)ic_bf.rt << 16)
+                       | ((unsigned int)(unsigned short)ic_bf.immed);
         }
-        memcpy(&code_image[ip], &ic_bf, sizeof(ic_bf)); /*add to code image*/
+        code_image[ip] = (int)word_value;
         return 1;
         break;
     case 'j':
@@ -399,6 +420,7 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             if(types[0] == SYM){
                 jc_bf.opcode = 30;
                 jc_bf.reg = 0;
+                jc_bf.address = 0;
             }
             else if(types[0] == REG){
                 jc_bf.opcode = 30;
@@ -409,7 +431,7 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("an immediate value cannot be given to a jmp command");
                 return 0;
             }
-            }
+        }
         else if(strcmp(word, "la") == 0){
             if(!(count = getparams(line, lp, params, types, lc))){
                 err("no parameter given to la command");
@@ -420,16 +442,15 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 return 0;
             }
             if(types[0] == SYM){
-                jc_bf.opcode = 30;
+                jc_bf.opcode = 31;
                 jc_bf.reg = 0;
+                jc_bf.address = 0;
             }
             else{
                 err("an la command must be given a label");
                 return 0;
             }
-            jc_bf.opcode = 31;
-            jc_bf.reg = 0;
-            }
+        }
         else if(strcmp(word, "call") == 0){
             if(!(count = getparams(line, lp, params, types, lc))){
                 err("no parameter given to call command");
@@ -440,16 +461,15 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 return 0;
             }
             if(types[0] == SYM){
-                jc_bf.opcode = 30;
+                jc_bf.opcode = 32;
                 jc_bf.reg = 0;
+                jc_bf.address = 0;
             }
             else{
                 err("a call command must be given a label");
                 return 0;
             }
-            jc_bf.opcode = 32;
-            jc_bf.reg = 0;
-            }
+        }
         else if(strcmp(word, "hlt") == 0){
             if(getparams(line, lp, params, types, lc)){
                 err("no parameters should be given to an hlt command");
@@ -459,10 +479,17 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             jc_bf.reg = 0;
             jc_bf.address = 0;
         }
-        memcpy(&code_image[ip], &jc_bf, sizeof(jc_bf)); /*add to code image*/
+        else{
+            return 0;
+        }
+        word_value = ((unsigned int)jc_bf.opcode << 26)
+                   | ((unsigned int)jc_bf.reg << 25)
+                   | ((unsigned int)jc_bf.address);
+        code_image[ip] = (int)word_value; /*add to code image*/
         return 1;
         break;
     default:
-        break;
+        return 0;
     }
+    return 0;
 }

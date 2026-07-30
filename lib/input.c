@@ -33,17 +33,17 @@ int getparams(char line[], int *lp, char *params[], int types[], int lc){
                 err("a register cannot be less than 0");
             }
             types[i] = REG;
-            params[i] = strdup(param);
+            params[i] = dupstr(param);
         }
         else if(isnum(param)){
             /*parameter is an immediate value*/
             types[i] =  IMMED;
-            params[i] = strdup(param);
+            params[i] = dupstr(param);
         }
         else if(isalpha((unsigned char)param[0])){
             /*parameter is a label*/
             types[i] =  SYM;
-            params[i] = strdup(param);
+            params[i] = dupstr(param);
         }
         else{
             err("parameter is not register, immediate value, or label");

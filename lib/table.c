@@ -29,10 +29,10 @@ nlist *install(char *name, char *defn, nlist *hashtab[]){
     unsigned hashval;
     if((np = lookup(name, hashtab)) == NULL){
         np = (nlist *) malloc(sizeof(*np));
-        if (np == NULL || (np->name = strdup(name)) == NULL){
+        if (np == NULL || (np->name = dupstr(name)) == NULL){
             return NULL;
         }
-        np->defn = strdup(defn != NULL ? defn : "");
+        np->defn = dupstr(defn != NULL ? defn : "");
         if(np->defn == NULL){
             free(np->name);
             free(np);
@@ -44,7 +44,7 @@ nlist *install(char *name, char *defn, nlist *hashtab[]){
     }
     else {
         free((void *) np->defn);
-        if((np->defn = strdup(defn)) == NULL){
+        if((np->defn = dupstr(defn)) == NULL){
             return NULL;
         }
     }
@@ -52,16 +52,18 @@ nlist *install(char *name, char *defn, nlist *hashtab[]){
 }
 
 int add_symbol(const char *name, int value, char *attribute, symbol **symboltab){
+    symbol *s;
+
     if(lookup_symbol((char *)name, *symboltab)){                              
         fprintf(stderr, "error: symbol '%s' already defined\n", name);                                  
         return 0;
     }              
-    symbol *s = malloc(sizeof(*s));
+    s = malloc(sizeof(*s));
     if(!s){                                               
         fprintf(stderr, "error: malloc failed\n");                                       
         return 0;                                        
     }
-    s->name  = strdup(name);  
+    s->name  = dupstr(name);  
     if(s->name == NULL){
         free(s);
         fprintf(stderr, "error: malloc failed");

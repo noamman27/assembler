@@ -20,8 +20,9 @@ static ExtRef *ext_refs = NULL;
 
 static void add_ext_ref(char *name, int address, int lc){
     ExtRef *e = (ExtRef *)malloc(sizeof(ExtRef));
+    (void)lc;
     if(!e){ err("malloc failed in add_ext_ref"); return; }
-    e->name    = strdup(name);
+    e->name    = dupstr(name);
     e->address = address;
     e->next    = ext_refs;
     ext_refs   = e;
@@ -47,6 +48,9 @@ static void free_ext_refs(void){
    the old attribute string is NOT freed because it may be a string literal.
 ───────────────────────────────────────────────────────────────────────── */
 static int add_entry_attr(symbol *s, char *sym_name, int lc){
+    char *combined;
+
+    (void)lc;
     if(strcmp(s->attribute, "external") == 0){
         fprintf(stderr, "error: symbol '%s' is external and cannot be .entry\n", sym_name);
         return 0;
@@ -55,7 +59,7 @@ static int add_entry_attr(symbol *s, char *sym_name, int lc){
     if(strstr(s->attribute, "entry") != NULL) return 1;
 
     /* build "original, entry" string */
-    char *combined = (char *)malloc(strlen(s->attribute) + 9); /* ", entry\0" = 8 chars */
+    combined = (char *)malloc(strlen(s->attribute) + 9); /* ", entry\0" = 8 chars */
     if(!combined){ err("malloc failed in add_entry_attr"); return 0; }
     sprintf(combined, "%s, entry", s->attribute);
     s->attribute = combined;   /* replace with combined — original was a literal, safe to discard */
@@ -75,24 +79,35 @@ static int add_entry_attr(symbol *s, char *sym_name, int lc){
      (data symbol values already shifted by ICF in first-pass step 19)
 ═══════════════════════════════════════════════════════════════════════════ */
 static void write_ob(char *basename, int *code_image, int icf, int dcf, char *data_image){
+    int i, j;
     char filename[MAXLINE];
-    snprintf(filename, sizeof(filename), "%s.ob", basename);
-    FILE *f = fopen(filename, "w");
+    FILE *f;
+
+    sprintf(filename, "%s.ob", basename);
+    f = fopen(filename, "w");
     if(!f){ fprintf(stderr, "error: cannot open %s\n", filename); return; }
 
     /* header: number of instructions, number of data bytes */
-    fprintf(f, "   %d %d\n", (icf - IC_START) / 4, dcf);
-
-    int i;
+    fprintf(f, "%d %d\n", icf - IC_START , dcf);
     /* code section: one int per instruction at code_image[0], [1] ... */
     for(i = 0; i < (icf - IC_START) / 4; i++){
         unsigned int word = (unsigned int)code_image[i];
-        fprintf(f, "%04d %08X\n", i, word);
+        fprintf(f, "%04d %02X %02X %02X %02X\n",
+        i * 4 + IC_START,
+        word & 0xFF,
+        (word >> 8) & 0xFF,
+        (word >> 16) & 0xFF,
+        (word >> 24) & 0xFF);
     }
     /* data section: bytes stored at data_image[0..DCF-1],
        but printed at output addresses icf .. icf+dcf-1                      */
-    for(i = 0; i < dcf; i++){
-        fprintf(f, "%04d %02X\n", icf + i, (unsigned char)data_image[i]);
+    for(i = 0; i < dcf; i+=4){
+        fprintf(f, "%04d ", icf + i);
+        for(j = 0; j < 4 && i + j < dcf; j++){
+            fprintf(f, "%02X", (unsigned char)data_image[i + j]);
+            if(i + j + 1 < dcf && j < 3) fputc(' ', f);
+        }
+        fputc('\n', f);
     }
     fclose(f);
 }
@@ -101,15 +116,17 @@ static void write_ob(char *basename, int *code_image, int icf, int dcf, char *da
 static void write_ent(char *basename, symbol *symboltab){
     int has_entry = 0;
     symbol *s = symboltab;
+    char filename[MAXLINE];
+    FILE *f;
+
     while(s){
         if(strstr(s->attribute, "entry") != NULL){ has_entry = 1; break; }
         s = s->next;
     }
     if(!has_entry) return;
 
-    char filename[MAXLINE];
-    snprintf(filename, sizeof(filename), "%s.ent", basename);
-    FILE *f = fopen(filename, "w");
+    sprintf(filename, "%s.ent", basename);
+    f = fopen(filename, "w");
     if(!f){ fprintf(stderr, "error: cannot open %s\n", filename); return; }
 
     s = symboltab;
@@ -122,14 +139,17 @@ static void write_ent(char *basename, symbol *symboltab){
 }
 /* .ext file: one line per external reference — only written if refs exist   */
 static void write_ext(char *basename){
+    char filename[MAXLINE];
+    FILE *f;
+    ExtRef *e;
+
     if(!ext_refs) return;
 
-    char filename[MAXLINE];
-    snprintf(filename, sizeof(filename), "%s.ext", basename);
-    FILE *f = fopen(filename, "w");
+    sprintf(filename, "%s.ext", basename);
+    f = fopen(filename, "w");
     if(!f){ fprintf(stderr, "error: cannot open %s\n", filename); return; }
 
-    ExtRef *e = ext_refs;
+    e = ext_refs;
     while(e){
         fprintf(f, "%s %04d\n", e->name, e->address);
         e = e->next;
@@ -156,6 +176,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
     int  immed;
     int lc      = 0;
     char type;
+    symbol *s;
 
     rewind(input); /* step 1 setup: go back to beginning of pre-assembled file */
 
@@ -183,7 +204,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
                 error = 1;
                 continue;
             }
-            symbol *s = lookup_symbol(sym, symboltab);
+            s = lookup_symbol(sym, symboltab);
             if(!s){
                 fprintf(stderr, "error: .entry symbol '%s' not defined\n", sym);
                 error = 1;
@@ -210,7 +231,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
             getparam(line, &lp, sym, &immed, lc); /* skip $rt                     */
             reg = getparam(line, &lp, sym, &immed, lc); /* get label              */
             if(reg == SYM){
-                symbol *s = lookup_symbol(sym, symboltab);
+                s = lookup_symbol(sym, symboltab);
                 if(!s){
                         fprintf(stderr, "error: label '%s' not found\n", sym);
                         
@@ -218,7 +239,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
                 } else {
                     I_BF ibf;
                     memcpy(&ibf, &code_image[ip], sizeof(ibf));
-                    ibf.immed = (unsigned short)(s->value - ip); /* relative offset */
+                    ibf.immed = (unsigned short)(s->value - ic); /* relative offset in bytes */
                     memcpy(&code_image[ip], &ibf, sizeof(ibf));
                 }
             }
