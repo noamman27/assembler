@@ -120,7 +120,6 @@ static void write_ent(char *basename, symbol *symboltab){
     }
     fclose(f);
 }
-
 /* .ext file: one line per external reference — only written if refs exist   */
 static void write_ext(char *basename){
     if(!ext_refs) return;
@@ -173,14 +172,12 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
 
         /* step 3: skip label if present (ends with ':')                      */
         if(word[strlen(word) - 1] == ':'){
-            lp = 0;
             len = getword(word, line, &lp);
             if(len == 0) continue; /* label-only line                         */
         }
 
         /* steps 4-6: .entry — add "entry" to the symbol's attributes        */
         if(strcmp(word, ".entry") == 0){
-            lp = 0;
             if(getword(sym, line, &lp) == 0){
                 err("no symbol given to .entry");
                 error = 1;
@@ -209,20 +206,20 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
            first pass left immed = 0.
            compute: immed = target_address - current_ic  (relative offset)   */
         if(type == 'i' && iscond(word)){
-            lp = 0;
-            getparam(line, &lp, sym, &immed); /* skip $rs                     */
-            getparam(line, &lp, sym, &immed); /* skip $rt                     */
-            reg = getparam(line, &lp, sym, &immed); /* get label              */
+            getparam(line, &lp, sym, &immed, lc); /* skip $rs                     */
+            getparam(line, &lp, sym, &immed, lc); /* skip $rt                     */
+            reg = getparam(line, &lp, sym, &immed, lc); /* get label              */
             if(reg == SYM){
                 symbol *s = lookup_symbol(sym, symboltab);
                 if(!s){
-                    fprintf(stderr, "error: label '%s' not found\n", sym);
+                        fprintf(stderr, "error: label '%s' not found\n", sym);
+                        
                     error = 1;
                 } else {
                     I_BF ibf;
-                    memcpy(&ibf, &data_image[ip], sizeof(ibf));
+                    memcpy(&ibf, &code_image[ip], sizeof(ibf));
                     ibf.immed = (unsigned short)(s->value - ip); /* relative offset */
-                    memcpy(&data_image[ip], &ibf, sizeof(ibf));
+                    memcpy(&code_image[ip], &ibf, sizeof(ibf));
                 }
             }
         }
@@ -231,18 +228,17 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
            first pass left address = 0 for label operands.
            fill in the absolute address of the target symbol.                */
         if(type == 'j' && strcmp(word, "hlt") != 0){
-            lp = 0;
-            reg = getparam(line, &lp, sym, &immed);
+            reg = getparam(line, &lp, sym, &immed, lc);
             if(reg == SYM){
                 symbol *s = lookup_symbol(sym, symboltab);
                 if(!s){
-                    fprintf(stderr, "error: label '%s' not found\n", sym);
-                    error = 1;
+                        fprintf(stderr, "error: label '%s' not found\n", sym);
+                        error = 1;
                 } else {
                     J_BF jbf;
-                    memcpy(&jbf, &data_image[ip], sizeof(jbf));
+                    memcpy(&jbf, &code_image[ip], sizeof(jbf));
                     jbf.address = (unsigned int)s->value;
-                    memcpy(&data_image[ip], &jbf, sizeof(jbf));
+                    memcpy(&code_image[ip], &jbf, sizeof(jbf));
                     /* step 8: if external, record the reference              */
                     if(strcmp(s->attribute, "external") == 0)
                         add_ext_ref(sym, ic, lc);

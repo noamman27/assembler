@@ -1,0 +1,25 @@
+.entry LIST
+.extern W
+MAIN: add $3, $4, $5
+LOOP: addi $1, 48, $2
+add $1, $2, $3
+move $3, $4
+sub $1, $2, $4
+bne $1, $2, END
+add $1, $2, $3
+move $3, $4
+beq $1, $2, END
+jmp LOOP
+add $1, $2, $3
+move $3, $4
+add $1, $2, $3
+move $4, $5
+add $1, $2, $3
+move $4, $5
+END: hlt
+STR: .asciz "abcd"
+LIST: .dw 6, -9
+.dw -100
+.entry K
+K: .dw 31
+.extern val

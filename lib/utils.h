@@ -38,6 +38,10 @@ int getfunct(char *s);
 void remove_quotes(char *s);
 void update_symbols(int icf, symbol *symboltab);
 int lineend(char *s);
+int getword(char word[], char line[], int *lp);
+int getparam(char line[], int *lp, char sym[], int *immed, int lc);
+int getch(char buffer[], char *ch, int *lp);
+int ungetch(char buffer[], char c, int *lp);
 
 typedef struct {
     char *name;

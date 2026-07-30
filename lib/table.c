@@ -53,18 +53,18 @@ nlist *install(char *name, char *defn, nlist *hashtab[]){
 
 int add_symbol(const char *name, int value, char *attribute, symbol **symboltab){
     if(lookup_symbol((char *)name, *symboltab)){                              
-        fprintf(stderr, "Error: symbol '%s' already defined\n", name);                                  
+        fprintf(stderr, "error: symbol '%s' already defined\n", name);                                  
         return 0;
     }              
     symbol *s = malloc(sizeof(*s));
     if(!s){                                               
-        fprintf(stderr, "Error: malloc failed\n");                                       
+        fprintf(stderr, "error: malloc failed\n");                                       
         return 0;                                        
     }
     s->name  = strdup(name);  
     if(s->name == NULL){
         free(s);
-        err("error: malloc failed");
+        fprintf(stderr, "error: malloc failed");
         return 0;
     }
     s->value = value;

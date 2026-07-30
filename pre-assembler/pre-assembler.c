@@ -43,11 +43,13 @@ int pre_assemble(FILE *f, FILE *write, char *name){
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
         lc++;
         if(!lineend(line)){
-            err("error: line is longer than 80 chars");
+            /* print concise message (err adds the "error in line %d:" prefix) */
+            err("line is longer than 80 chars");
             error = 1;
-            do{ /*clear the rest of the line*/
-                fgets(line, MAXLINE, f);
-            } while(!lineend(line));
+            /* clear the rest of the (too long) line; stop if EOF encountered */
+            while(fgets(line, MAXLINE, f)){
+                if(lineend(line)) break;
+            }
             continue;
         }
         lp = 0;
@@ -64,7 +66,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
         if(strcmp(word, "mcro") == 0){ /*if first word is a macro decleration*/
             getword(macroName, line, &lp); /*place the next word in macroName*/
             if(gettype(macroName, &commandType)){ /*make sure new macro's name isnt a command*/
-                err("error: a macro cannot have the same name as a command");
+                err("a macro cannot have the same name as a command");
                 error = 1;
                 continue;
             }
@@ -75,6 +77,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
             }
             mcro=1; /*we set mcro flag to 1*/
             while(fgets(line, MAXLINE, f)){ /*and start another loop to get the content of the macro*/ 
+                lp = 0; /*reset line pointer for the new line*/
                 getword(word,line, &lp); /*we get the first word in word*/
                 if(word[0] == '\0' || strcmp(word, "mcroend") == 0){
                     install(macroName, macroContent, macrotab); /*add the macro to macrotab*/
@@ -88,9 +91,14 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                 }
                 if(mcro){ /*and check if mcro flag is true*/
                     line_count++; /*increment line_count*/
-                    strcat(word, line); /*add line to the end of word*/
-                    if(!append_text(&macroContent, &macroContentCap, &macroContentLen, word)){ /*append the current line to the macro*/
-                        fprintf(stderr, "realloc error"); /*if we got errors we print them to stderr*/
+                    /* append token and remaining line safely to macroContent */
+                    if(!append_text(&macroContent, &macroContentCap, &macroContentLen, word)){
+                        fprintf(stderr, "realloc error");
+                        error = 1;
+                        continue;
+                    }
+                    if(!append_text(&macroContent, &macroContentCap, &macroContentLen, line + lp)){
+                        fprintf(stderr, "realloc error");
                         error = 1;
                         continue;
                     }
@@ -102,14 +110,16 @@ int pre_assemble(FILE *f, FILE *write, char *name){
             fprintf(stderr, "macro %s already defined", word); /*and print an error*/
             return 0;
         }
-        strcat(word, line); /*strcat line to word since getword removes it from the line*/
-        fputs(word, write); /*write word to the file since we added line to the rest of it*/
+        /* write token and the rest of the line directly to avoid buffer overflow */
+        fprintf(write, "%s%s", word, line + lp);
     }
     free(macroContent);/*reached EOF so we free the array*/
     if(error){ /*if we found errors*/
         err("errors detected in pre assembly. assembly will not continue");
         return 0;
     }
+    fflush(write);
+    rewind(write);
     if(!first_pass(write, name, macrotab)){
         return 0;
     }

@@ -4,28 +4,30 @@
 #include "../lib/utils.h"
 
 int main(int argc, char *argv[]){
-    int i, j = 0;
-    char name[MAXLINE], *tmp;
+    int i, j;
+    char name[MAXLINE], amname[MAXLINE], *tmp;
     FILE *original, *pre_assembled;
     if(argc < 2){ /*make sure we were given at least one file*/
         fprintf(stderr, "error: not enough given params\n");
         return 1;
     }
     for(i=1; i<argc; i++){
+        j = 0;
         tmp = argv[i];
-        while(*argv[i] != '.'){
-            name[j++] = *tmp;
+        while(*tmp != '\0' && *tmp != '.'){
+            if(j < MAXLINE-1) name[j++] = *tmp;
             tmp++;
         }
-        if(strcmp(tmp, "as")){ /*check the file extension to ensuer we were given a .as file*/
-            fprintf(stderr, "error: the program must be given a file ending with .as");
+        name[j] = '\0'; /*terminate the basename*/
+        if(*tmp != '.' || strcmp(tmp, ".as") != 0){ /*check the file extension to ensure .as*/
+            fprintf(stderr, "error: the program must be given a file ending with .as\n");
             continue;
         }
-        name[j - 1] = '\0';/*close the string without including the .*/
-        original = fopen(argv[i], "r"); /*open the input and output files*/
-        strcat(name, ".am"); /*add .am to the name*/
-        pre_assembled = fopen(name, "rw"); /*open the file as rw since we need to read and write from it*/
-        name[j-1] = '\0'; /*remove the .am since we need the basename for assembly*/
+        original = fopen(argv[i], "r"); /*open the input file*/
+        /*prepare pre-assembled filename */
+        strcpy(amname, name);
+        strcat(amname, ".am"); /*add .am to the name*/
+        pre_assembled = fopen(amname, "w+"); /*open the file for read/write (create/truncate)*/
         if(original == NULL || pre_assembled == NULL){ /*check if we can open them*/
             fprintf(stderr, "error: failed to open input or output file\n"); /*if not we print and error to stderr*/
             continue;

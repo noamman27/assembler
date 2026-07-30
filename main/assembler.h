@@ -70,12 +70,6 @@ int add_symbol(const char *name, int value, char *attribute, symbol **symboltab)
 symbol *lookup_symbol(char *name, symbol *symboltab);
 void update_symbols(int icf , symbol *symboltab);
 
-/* lib/input.c — input helpers */
-int     getword(char word[], char line[], int *lp);
-int     getparam(char line[], int *lp, char sym[], int *immed);
-int     getch(char buffer[], char *ch, int *lp);
-int     ungetch(char buffer[], char c, int *lp);
-
 /* lib/utils.c — command helpers */
 int     gettype(char *s, char *t);
 int     isR(char *s);
