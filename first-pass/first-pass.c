@@ -5,19 +5,16 @@
 #include <string.h>
 #include <stdlib.h>
 
-symbol *symboltab = NULL, *sp; /* head of the symbol table linked list */
-int IC = IC_START, DC = 0, ICF, DCF, ip; /*line pointer, IC, DC, and their final values, as well as an instruction pointer (current location in code_image), which is used instead of IC to cut down on memory*/
-
-static int handle_data(char line[], char word[], char *data_image, int *lp, int isSym, char *sym, int lc);
-static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc);
+static int handle_data(char line[], char word[], char **data_image, int *lp, int isSym, char *sym, int lc, symbol **symboltab, int *DC);
+static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc, int ip);
 
 int first_pass(FILE *input, char *name, nlist *macrotab[]){
-    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], type, *data_image; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, type of command, and array to hold parameters*/
-    int isSym = 0, len, error = 0, lp = 0, status, *code_image, lc = 0;
+    char line[MAXLINE], word[MAXLINE], sym[MAXLINE], type, *data_image = NULL; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, type of command, and array to hold parameters*/
+    int isSym = 0, len, error = 0, lp = 0, status, *code_image, lc = 0, IC = IC_START, DC = 0, ICF, DCF, ip; /*flag to tell a label is being defined, length of word, error flag, line pointer, status of function, instruction counter, data counter adn their final values, and instruction pointer to useinstead of */
+    symbol *symboltab = NULL, *sp; /*head of symbol list and a symbol pointer*/
     void *tmpbuf;
 
     code_image = (int *)malloc(sizeof(int));
-    data_image = (char *)malloc(sizeof(char));
     ip = 0;
     while(fgets(line, MAXLINE, input) != NULL){ /*run as long as we can read more from file*/
         lc++;
@@ -43,12 +40,22 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
                 error = 1;
                 continue;
             }
+            if(strcmp(word, ".entry") == 0 || strcmp(word, ".extern") == 0 || strcmp(word, ".db") == 0 || strcmp(word, ".dh") == 0 || strcmp(word, ".dw") == 0){
+                err("a label cannot have the same name as an instruction");
+                error = 1;
+                continue;
+            }
+            if(isdigit(word[0])){
+                err("a label cannot begin with a number");
+                error = 1;
+                continue;
+            }
             isSym = 1; /*toggle sym flag*/
             strcpy(sym, word); /*save label name in sym*/
             getword(word, line, &lp); /*and get the next word*/
         }
         /*handle data instructions*/
-        if((status = handle_data(line, word, data_image, &lp, isSym, sym, lc)) == 1){
+        if((status = handle_data(line, word, &data_image, &lp, isSym, sym, lc, &symboltab, &DC)) == 1){
             /*function handled data so we continue*/
             continue;
         }
@@ -75,7 +82,12 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
                 continue;
             }
             if(gettype(word, &type)){
-                err("a label cannot habe the same name as a command");
+                err(".extern cannot be given a command");
+                error = 1;
+                continue;
+            }
+            if(strcmp(word, ".entry") == 0 || strcmp(word, ".extern") == 0 || strcmp(word, ".db") == 0 || strcmp(word, ".dh") == 0 || strcmp(word, ".dw") == 0){
+                err(".extern cannot be given an instruction");
                 error = 1;
                 continue;
             }
@@ -94,7 +106,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
             continue;
         }
         /*handle encoding of commands*/        
-        if(!encode_command(line, word, code_image, &lp, type, lc)){
+        if(!encode_command(line, word, code_image, &lp, type, lc, ip)){
             error = 1;
             continue;
         }
@@ -126,7 +138,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
 }
 
 /*hadnles the data instructions, takes the line, the word, the data image, line pointer, whether a label is being defined, and the name of the label. return 1 on success, 0 of error, and -1 if the word isnt a data instruction*/
-static int handle_data(char line[], char word[], char *data_image, int *lp, int isSym, char *sym, int lc){
+static int handle_data(char line[], char word[], char **data_image, int *lp, int isSym, char *sym, int lc, symbol **symboltab, int *DC){
     int count, types[MAXLINE], i, len;
     char *tmpbuf;
     char *params[MAXLINE], *tmp;
@@ -136,7 +148,7 @@ static int handle_data(char line[], char word[], char *data_image, int *lp, int 
     if(strcmp(word, ".dh") == 0 ) {
     count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
-        add_symbol(sym, DC, "data", &symboltab);
+        add_symbol(sym, *DC, "data", symboltab);
     }
     for(i = 0; i<count; i++){
         if(types[i] != IMMED){
@@ -145,25 +157,25 @@ static int handle_data(char line[], char word[], char *data_image, int *lp, int 
         }
         val = strtol(params[i], &endptr, 10);
         if(*endptr != '\0' || val > MAX_HALF_WORD || val < MIN_HALF_WORD){
-            err("number given to .dh exceeds values representable");
+            err("number given to .dh exceeds maximum");
             return 0;
         }
         uval = (unsigned int)val;
-        tmp = (char *) realloc(data_image, DC += HALF_WORD);
+        tmp = (char *) realloc(*data_image, *DC += HALF_WORD);
         if(!tmp){
             err("realloc failed");
             return 0;
         }
-        data_image = tmp;
-        data_image[DC - 2] = (unsigned char)(uval & 0xFF);
-        data_image[DC - 1] = (unsigned char)((uval >> 8) & 0xFF);
+        *data_image = tmp;
+        (*data_image)[*DC - 2] = (unsigned char)(uval & 0xFF);
+        (*data_image)[*DC - 1] = (unsigned char)((uval >> 8) & 0xFF);
     }
     return 1;
 }
 else if(strcmp(word, ".db") == 0){
     count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
-        add_symbol(sym, DC, "data", &symboltab);
+        add_symbol(sym, *DC, "data", symboltab);
     }
     for(i = 0; i<count; i++){
         if(types[i] != IMMED){
@@ -172,24 +184,24 @@ else if(strcmp(word, ".db") == 0){
         }
         val = strtol(params[i], &endptr, 10);
         if(*endptr != '\0' || val > MAX_BYTE || val < MIN_BYTE){
-            err("number given to .db exceeds values representable");
+            err("number given to .db exceeds maximum");
             return 0;
         }
         uval = (unsigned int)val;
-        tmp = (char *) realloc(data_image, DC += 1);
+        tmp = (char *) realloc(*data_image, *DC += 1);
         if(!tmp){
             err("realloc failed");
             return 0;
         }
-        data_image = tmp;
-        data_image[DC - 1] = (unsigned char)(uval & 0xFF);
+        *data_image = tmp;
+        (*data_image)[*DC - 1] = (unsigned char)(uval & 0xFF);
     }
     return 1;
 }
 else if(strcmp(word, ".dw") == 0){
     count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
-        add_symbol(sym, DC, "data", &symboltab);
+        add_symbol(sym, *DC, "data", symboltab);
     }
     for(i = 0; i<count; i++){
         if(types[i] != IMMED){
@@ -198,20 +210,20 @@ else if(strcmp(word, ".dw") == 0){
         }
         val = strtol(params[i], &endptr, 10);
         if(*endptr != '\0' || val > MAX_WORD || val < MIN_WORD){
-            err("number given to .dw exceeds values representable");
+            err("number given to .dw exceeds maximum");
             return 0;
         }
         uval = (unsigned int)val;
-        tmp = (char *) realloc(data_image, DC += WORD);
+        tmp = (char *) realloc(*data_image, *DC += WORD);
         if(!tmp){
             err("realloc failed");
             return 0;
         }
-        data_image = tmp;
-        data_image[DC - 4] = (unsigned char)(uval & 0xFF);
-        data_image[DC - 3] = (unsigned char)((uval >> 8) & 0xFF);
-        data_image[DC - 2] = (unsigned char)((uval >> 16) & 0xFF);
-        data_image[DC - 1] = (unsigned char)((uval >> 24) & 0xFF);
+        *data_image = tmp;
+        (*data_image)[*DC - 4] = (unsigned char)(uval & 0xFF);
+        (*data_image)[*DC - 3] = (unsigned char)((uval >> 8) & 0xFF);
+        (*data_image)[*DC - 2] = (unsigned char)((uval >> 16) & 0xFF);
+        (*data_image)[*DC - 1] = (unsigned char)((uval >> 24) & 0xFF);
     }
     return 1;
 }
@@ -221,7 +233,7 @@ else if(strcmp(word, ".dw") == 0){
             return 0;
         }
         if(isSym){ 
-            add_symbol(sym, DC, "data", &symboltab);
+            add_symbol(sym, *DC, "data", symboltab);
         }
         for(i = 0; i < len; i++){
             if(isdigit(word[i])){
@@ -235,17 +247,17 @@ else if(strcmp(word, ".dw") == 0){
         }
         remove_quotes(word);
         len = (int)strlen(word);
-        DC += len + 1;
-        tmpbuf = realloc(data_image, DC * sizeof(*data_image));
+        *DC += len + 1;
+        tmpbuf = realloc(*data_image, *DC);
         if(!tmpbuf){
             err("realloc failed");
             return 0;
         }
-        data_image = tmpbuf;
+        *data_image = tmpbuf;
         for(i = 0; i < len; i++){
-            data_image[DC - (len + 1) + i] = (unsigned char)word[i];
+            (*data_image)[*DC - (len + 1) + i] = (unsigned char)word[i];
         }
-        data_image[DC - 1] = '\0';
+        (*data_image)[*DC - 1] = '\0';
         return 1;
     }
     else{
@@ -253,7 +265,7 @@ else if(strcmp(word, ".dw") == 0){
     }
 }
 /*hadnles the encoding of commands, takes the line, the word, the code image, line pointer, snd command type. returns 1 on success amnd 0 on error*/
-static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc){
+static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc, int ip){
     int count, types[MAXLINE];
     char *params[MAXLINE];
     R_BF rc_bf;
@@ -394,6 +406,10 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             if(types[0] != REG || types[1] != IMMED || types[2] != REG){
                 err("a memory loading or saving I command should be given a register, an immediate value, and another register");
                 return 0;
+            }
+            /*ensure we dont exceed maximum values*/
+            if((strcmp(word, "lb") == 0 && atoi(params[1]) > MAX_BYTE) || (strcmp(word, "lh") == 0 && atoi(params[1]) > MAX_HALF_WORD) || (strcmp(word, "lw") == 0 && atoi(params[1]) > MAX_WORD)){
+                err("value given to loading command exceeds maximum");
             }
             ic_bf.rs = atoi(params[0]);
             ic_bf.immed = atoi(params[1]);

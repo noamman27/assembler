@@ -1,0 +1,4 @@
+error: symbol 'label' is external and cannot be .entry
+error in line 3: no symbol given to .entry
+error: .entry symbol 'doesnt_exist' not defined
+error: label 'doesnt_exist' not found

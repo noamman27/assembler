@@ -1,28 +1,18 @@
-; this test is meant to show errors in first pass
-
-mcro HELLO
- addi $2, $5, 20
-mcroend
-
 HELLO: add $2, $6, A
 sub $2, 6, $5
 and $2 $6, $5 
 or $23
 nor $33, $21
-
 mvhi $2, A
 mvlo 2, $4
 move
-
 addi $4, $5, $8
 subi 4, $5, $0
 andi A, 5, $10
 ori $5, 5, A
-
 beq $4, 5, A
 bne $4, $18, $20
 bgt $4, $20, 15
-
 lb 12, 15, $2
 lw $12, $14, $2
 lh A, 125, $2
@@ -33,43 +23,27 @@ sw A, 15, $2
 sh $4, 127841452352, $5
 sw $4, 12, 2
 sw $4, 12, A
-
 la $5
 la 15
-
 call $5
 call 15
-
 smth $2, 15, A
-
 A: ori $5, $7 HELLO
-
 A: jmp 5
-
 hlt: move
-
 .db 40976341856
 .db smth
-
 .dh 40976341856
 .dh smth
-
 .dw 40976341856 
 .dw smth 
-
 .asciz 4095612
 .asciz hello
-
 1error: add $5, $4, $19
 .extern: add $5, $4, $19
-
 valid: or $18, $10, $26
-
-
 .extern
 .extern 1error
 .extern valid
 .extern .entry
-
-
 hlt A

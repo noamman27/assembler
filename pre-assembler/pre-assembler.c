@@ -70,8 +70,24 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                 error = 1;
                 continue;
             }
+            /*make sure macro name isnt an instruction*/
+            if(strcmp(macroName, ".entry") == 0 || strcmp(macroName, ".extern") == 0 || strcmp(macroName, ".db") == 0 || strcmp(macroName, ".dh") == 0 || strcmp(macroName, ".dw") == 0){
+                err("a macro cannot have the same name as an instruction");
+                error = 1;
+                continue;
+            }
             if(lookup(macroName, macrotab)){ /*make sure new macro isnt already defined*/
                 fprintf(stderr, "error: macro %s already defined", macroName);
+                error = 1;
+                continue;
+            }
+            if(getword(word, line, &lp)){ /*look for chars after macro name*/
+                err("chars found after macro decleration");
+                error = 1;
+                continue;
+            }
+            if(isdigit(macroName[0])){
+                err("a macro cannot begin with a number");
                 error = 1;
                 continue;
             }
@@ -80,6 +96,11 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                 lp = 0; /*reset line pointer for the new line*/
                 getword(word,line, &lp); /*we get the first word in word*/
                 if(word[0] == '\0' || strcmp(word, "mcroend") == 0){
+                    if(getword(word, line, &lp)){ /*look for chars after macro ending*/
+                        err("chars found after macro ending");
+                        error = 1;
+                        continue;
+                    }
                     install(macroName, macroContent, macrotab); /*add the macro to macrotab*/
                     line_count = 0; /*reset line count*/
                     macroContentLen = 0; /*reset macro content length*/
@@ -115,7 +136,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
     }
     free(macroContent);/*reached EOF so we free the array*/
     if(error){ /*if we found errors*/
-        err("errors detected in pre assembly. assembly will not continue");
+        fprintf(stderr,"errors detected in pre assembly. assembly will not continue");
         return 0;
     }
     fflush(write);

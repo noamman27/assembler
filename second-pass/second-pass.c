@@ -20,7 +20,7 @@ static ExtRef *ext_refs = NULL;
 
 static void add_ext_ref(char *name, int address, int lc){
     ExtRef *e = (ExtRef *)malloc(sizeof(ExtRef));
-    (void)lc;
+
     if(!e){ err("malloc failed in add_ext_ref"); return; }
     e->name    = dupstr(name);
     e->address = address;
@@ -50,7 +50,6 @@ static void free_ext_refs(void){
 static int add_entry_attr(symbol *s, char *sym_name, int lc){
     char *combined;
 
-    (void)lc;
     if(strcmp(s->attribute, "external") == 0){
         fprintf(stderr, "error: symbol '%s' is external and cannot be .entry\n", sym_name);
         return 0;
@@ -233,7 +232,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
             if(reg == SYM){
                 s = lookup_symbol(sym, symboltab);
                 if(!s){
-                        fprintf(stderr, "error: label '%s' not found\n", sym);
+                        fprintf(stderr, "error in line %d: label '%s' not found\n",lc, sym);
                         
                     error = 1;
                 } else {
@@ -253,8 +252,8 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
             if(reg == SYM){
                 symbol *s = lookup_symbol(sym, symboltab);
                 if(!s){
-                        fprintf(stderr, "error: label '%s' not found\n", sym);
-                        error = 1;
+                    fprintf(stderr, "error on line %d: label '%s' not found\n",lc ,sym);
+                    error = 1;
                 } else {
                     J_BF jbf;
                     memcpy(&jbf, &code_image[ip], sizeof(jbf));

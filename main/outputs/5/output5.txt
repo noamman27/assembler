@@ -1,0 +1,45 @@
+error in line 1: a label cannot have the same name as a macro
+error in line 2: an arithmatic or logical R command requires three registers
+error in line 4: not enough parameters given to arithmatic or logical R command
+error in line 5: a register cannot be larger than 31
+error in line 5: no parameter given to arithmatic or logical R command
+error in line 6: a move command requires two registers
+error in line 7: a move command requires two registers
+error in line 8: no parameter given to move command
+error in line 9: an arithmatic or logical I command should be given a register, an immediate value, and another register
+error in line 10: an arithmatic or logical I command should be given a register, an immediate value, and another register
+error in line 11: an arithmatic or logical I command should be given a register, an immediate value, and another register
+error in line 12: an arithmatic or logical I command should be given a register, an immediate value, and another register
+error in line 13: a conditional I command needs 2 registers and a label
+error in line 14: a conditional I command needs 2 registers and a label
+error in line 15: a conditional I command needs 2 registers and a label
+error in line 16: a memory loading or saving I command should be given a register, an immediate value, and another register
+error in line 17: a memory loading or saving I command should be given a register, an immediate value, and another register
+error in line 18: a memory loading or saving I command should be given a register, an immediate value, and another register
+error in line 20: a memory loading or saving I command should be given a register, an immediate value, and another register
+error in line 22: a memory loading or saving I command should be given a register, an immediate value, and another register
+error in line 24: a memory loading or saving I command should be given a register, an immediate value, and another register
+error in line 25: a memory loading or saving I command should be given a register, an immediate value, and another register
+error in line 26: an la command must be given a label
+error in line 27: an la command must be given a label
+error in line 28: a call command must be given a label
+error in line 29: a call command must be given a label
+error in line 30: command smth not recognized
+error in line 31: an arithmatic or logical I command should be given a register, an immediate value, and another register
+error in line 32: an immediate value cannot be given to a jmp command
+error in line 33: a label cannot have the same name as a command
+error in line 34: number given to .db exceeds maximum
+error in line 35: .db only accepts numbers
+error in line 36: number given to .dh exceeds maximum
+error in line 37: .dh only accepts numbers
+error in line 38: number given to .dw exceeds maximum
+error in line 39: .dw only accepts numbers
+error in line 40: digit given to .asciz
+error in line 41: string given to .asciz is not valid
+error in line 42: a label cannot begin with a number
+error in line 43: a label cannot have the same name as an instruction
+error in line 45: no symbol given as parameter for .extern
+error in line 46: symbol given as parameter for .extern isnt valid
+error: label valid already defined not as externalerror in line 48: .extern cannot be given an instruction
+error in line 49: no parameters should be given to an hlt command
+errors detected in first pass - assembly will not continue
