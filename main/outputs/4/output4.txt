@@ -1,5 +1,6 @@
 error in line 4: line is longer than 80 chars
-error: macro HELLO already definederror in line 11: a macro cannot have the same name as a command
+error in line 7: macro 'HELLO' already defined
+error in line 11: a macro cannot have the same name as a command
 error in line 15: a macro cannot have the same name as an instruction
 error in line 19: chars found after macro decleration
 error in line 23: chars found after macro ending

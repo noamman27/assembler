@@ -40,6 +40,7 @@ error in line 42: a label cannot begin with a number
 error in line 43: a label cannot have the same name as an instruction
 error in line 45: no symbol given as parameter for .extern
 error in line 46: symbol given as parameter for .extern isnt valid
-error: label valid already defined not as externalerror in line 48: .extern cannot be given an instruction
+error in line 47: label 'valid' already defined not as external
+error in line 48: .extern cannot be given an instruction
 error in line 49: no parameters should be given to an hlt command
 errors detected in first pass - assembly will not continue

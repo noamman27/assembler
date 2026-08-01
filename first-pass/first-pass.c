@@ -93,7 +93,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
             }
             sp = lookup_symbol(word, symboltab);
             if(sp && strcmp(sp->attribute, "external")){
-                fprintf(stderr,"error: label %s already defined not as external", word);
+                fprintf(stderr,"error in line %d: label '%s' already defined not as external\n",lc, word);
                 error = 1;
                 continue;
             }

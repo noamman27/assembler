@@ -1,1 +1,0 @@
-error: the program must be given a file ending with .as

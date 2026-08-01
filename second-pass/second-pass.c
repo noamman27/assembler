@@ -51,7 +51,7 @@ static int add_entry_attr(symbol *s, char *sym_name, int lc){
     char *combined;
 
     if(strcmp(s->attribute, "external") == 0){
-        fprintf(stderr, "error: symbol '%s' is external and cannot be .entry\n", sym_name);
+        fprintf(stderr, "error in line %d: symbol '%s' is external and cannot be .entry\n",lc ,sym_name);
         return 0;
     }
     /* already marked as entry — do nothing */
@@ -84,7 +84,7 @@ static void write_ob(char *basename, int *code_image, int icf, int dcf, char *da
 
     sprintf(filename, "%s.ob", basename);
     f = fopen(filename, "w");
-    if(!f){ fprintf(stderr, "error: cannot open %s\n", filename); return; }
+    if(!f){ fprintf(stderr, "error cannot open %s\n", filename); return; }
 
     /* header: number of instructions, number of data bytes */
     fprintf(f, "%d %d\n", icf - IC_START , dcf);
@@ -205,7 +205,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
             }
             s = lookup_symbol(sym, symboltab);
             if(!s){
-                fprintf(stderr, "error: .entry symbol '%s' not defined\n", sym);
+                fprintf(stderr, "error in line %d: .entry symbol '%s' not defined\n",lc, sym);
                 error = 1;
                 continue;
             }

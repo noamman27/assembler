@@ -77,7 +77,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                 continue;
             }
             if(lookup(macroName, macrotab)){ /*make sure new macro isnt already defined*/
-                fprintf(stderr, "error: macro %s already defined", macroName);
+                fprintf(stderr, "error in line %d: macro '%s' already defined\n",lc, macroName);
                 error = 1;
                 continue;
             }
@@ -114,12 +114,12 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                     line_count++; /*increment line_count*/
                     /* append token and remaining line safely to macroContent */
                     if(!append_text(&macroContent, &macroContentCap, &macroContentLen, word)){
-                        fprintf(stderr, "realloc error");
+                        fprintf(stderr, "realloc error\n");
                         error = 1;
                         continue;
                     }
                     if(!append_text(&macroContent, &macroContentCap, &macroContentLen, line + lp)){
-                        fprintf(stderr, "realloc error");
+                        fprintf(stderr, "realloc error\n");
                         error = 1;
                         continue;
                     }
@@ -136,7 +136,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
     }
     free(macroContent);/*reached EOF so we free the array*/
     if(error){ /*if we found errors*/
-        fprintf(stderr,"errors detected in pre assembly. assembly will not continue");
+        fprintf(stderr,"errors detected in pre assembly. assembly will not continue\n");
         return 0;
     }
     fflush(write);
