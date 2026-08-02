@@ -27,6 +27,6 @@ mv tests/test2.am outputs/2
 mv tests/test2.ent outputs/2
 mv tests/test2.ob outputs/2
 
-rm tests/test4.am
-rm tests/test5.am
-rm tests/test6.am
+mv tests/test4.am outputs/4
+mv tests/test5.am outputs/5
+mv tests/test6.am outputs/6

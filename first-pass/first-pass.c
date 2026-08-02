@@ -124,7 +124,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
         code_image = tmpbuf;
     }
     if(error){
-        fprintf(stderr, "errors detected in first pass - assembly will not continue\n");
+        fprintf(stderr, "errors detected in first pass. assembly will not continue\n");
         return 0;
     }
     ICF = IC;
@@ -289,6 +289,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("not enough parameters given to move command");
                 return 0;
             }
+            else if(count == -1){
+                return 0;
+            }
             if(types[0] !=  REG || types[1] != REG){
                 err("a move command requires two registers");
                 return 0;
@@ -315,6 +318,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             }
             else if(count < 3){
                 err("not enough parameters given to arithmatic or logical R command");
+                return 0;
+            }
+            else if(count == -1){
                 return 0;
             }
             if(types[0] != REG || types[1] != REG || types[2] != REG){
@@ -350,6 +356,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("not enough parameters given to arithmatic or logical I command");
                 return 0;
             }
+            else if(count == -1){
+                return 0;
+            }
             if(types[0] != REG || types[1] != IMMED || types[2] != REG){
                 err("an arithmatic or logical I command should be given a register, an immediate value, and another register");
                 return 0;
@@ -377,6 +386,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("not enough parameters given to conditional I command");
                 return 0;
             }
+            else if(count == -1){
+                return 0;
+            }
             if(types[0] != REG || types[1] != REG || types[2] != SYM){
                 err("a conditional I command needs 2 registers and a label");
                 return 0;
@@ -401,6 +413,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             }
             else if(count < 3){
                 err("not enough parameters given to memory loading I command");
+                return 0;
+            }
+            else if(count == -1){
                 return 0;
             }
             if(types[0] != REG || types[1] != IMMED || types[2] != REG){
@@ -433,6 +448,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("too many parameters given to jmp command");
                 return 0;
             }
+            else if(count == -1){
+                return 0;
+            }
             if(types[0] == SYM){
                 jc_bf.opcode = 30;
                 jc_bf.reg = 0;
@@ -457,6 +475,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("too many parameters given to la command");
                 return 0;
             }
+            else if(count == -1){
+                return 0;
+            }
             if(types[0] == SYM){
                 jc_bf.opcode = 31;
                 jc_bf.reg = 0;
@@ -474,6 +495,9 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
             }
             if(count > 1){
                 err("too many parameters given to call command");
+                return 0;
+            }
+            else if(count == -1){
                 return 0;
             }
             if(types[0] == SYM){

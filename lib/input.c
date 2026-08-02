@@ -7,14 +7,35 @@
 
 /*gets all the parameters in line.
 * puts the type of the parameter (register, immediate, label) in types
-* returns the amount of parameters the function found*/
+* returns the amount of parameters the function found, or -1 on error*/
 int getparams(char line[], int *lp, char *params[], int types[], int lc){
     char param[MAXLINE];
     int reg, i = 0;
-    
-    /* rely on getword which skips leading whitespace/commas */
-    while (getword(param, line, lp)){
-        
+
+    while(line[*lp] != '\0' && isspace((unsigned char)line[*lp])){
+        (*lp)++;
+    }
+
+    if(line[*lp] == ','){
+        err("comma before first parameter");
+        return -1;
+    }
+
+    while(line[*lp] != '\0'){
+        int j = 0;
+
+        while(line[*lp] != '\0' && !isspace((unsigned char)line[*lp]) && line[*lp] != ','){
+            param[j++] = line[(*lp)++];
+        }
+        param[j] = '\0';
+
+        if(j == 0){
+            if(line[*lp] == ','){
+                err(i == 0 ? "comma before first parameter" : "comma after last parameter");
+            }
+            return i;
+        }
+
         if(param[0] == '$'){ /*if first char is $ we have a register*/
             /*remove the $ from the register*/
             param[0] = param[1];
@@ -22,15 +43,16 @@ int getparams(char line[], int *lp, char *params[], int types[], int lc){
             param[2] = '\0';
             if(!isnum(param)){ /*if its not a number we also print and signal errors*/
                 err("register isnt a number");
-                return 0;
+                return -1;
             }
             reg = atoi(param); /*use atoi to get the number*/
             if(reg > 31){ /*check that 0 <= num <= 31*/
                 err("a register cannot be larger than 31");
-                return 0;
+                return -1;
             }
             else if(reg < 0){
                 err("a register cannot be less than 0");
+                return -1;
             }
             types[i] = REG;
             params[i] = dupstr(param);
@@ -47,10 +69,40 @@ int getparams(char line[], int *lp, char *params[], int types[], int lc){
         }
         else{
             err("parameter is not register, immediate value, or label");
+            return -1;
         }
         i++;
+
+        while(line[*lp] != '\0' && isspace((unsigned char)line[*lp])){
+            (*lp)++;
+        }
+
+        if(line[*lp] == '\0'){
+            return i;
+        }
+
+        if(line[*lp] != ','){
+            err("missing comma between parameters");
+            return -1;
+        }
+
+        (*lp)++;
+
+        while(line[*lp] != '\0' && isspace((unsigned char)line[*lp])){
+            (*lp)++;
+        }
+
+        if(line[*lp] == '\0'){
+            err("comma after last parameter");
+            return -1;
+        }
+
+        if(line[*lp] == ','){
+            err("comma next to another comma");
+            return -1;
+        }
     }
-    if(i == 0) return 0;
+
     return i;
 }
 

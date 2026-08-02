@@ -273,6 +273,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
 
     /* step 9: stop if errors — no output files                               */
     if(error){
+        fprintf(stderr,"errors detected in second pass. no output files will be created\n");
         free_ext_refs();
         return 0;
     }

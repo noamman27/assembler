@@ -1,4 +1,3 @@
-error in line 2: symbol 'label' is external and cannot be .entry
-error in line 3: no symbol given to .entry
-error in line 4: .entry symbol 'doesnt_exist' not defined
-error in line 5: label 'doesnt_exist' not found
+error in line 5: missing comma between parameters
+error in line 5: not enough parameters given to conditional I command
+errors detected in first pass. assembly will not continue
