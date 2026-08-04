@@ -8,7 +8,7 @@
 static int handle_data(char line[], char word[], char **data_image, int *lp, int isSym, char *sym, int lc, symbol **symboltab, int *DC);
 static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc, int ip);
 
-int first_pass(FILE *input, char *name, nlist *macrotab[]){
+int first_pass(FILE *input, char *name, macro *macrotab[]){
     char line[MAXLINE], word[MAXLINE], sym[MAXLINE], type, *data_image = NULL; /*char arrays to represent the whole line, a word in that line, the symbol being defined in that line, a temporary pointer for realloc, type of command, and array to hold parameters*/
     int isSym = 0, len, error = 0, lp = 0, status, *code_image, lc = 0, IC = IC_START, DC = 0, ICF, DCF, ip; /*flag to tell a label is being defined, length of word, error flag, line pointer, status of function, instruction counter, data counter adn their final values, and instruction pointer to useinstead of */
     symbol *symboltab = NULL, *sp; /*head of symbol list and a symbol pointer*/
@@ -30,7 +30,7 @@ int first_pass(FILE *input, char *name, nlist *macrotab[]){
                 error = 1;
                 continue;
             }
-            if(lookup(word, macrotab)){ /*check if label was already defined as a macro*/
+            if(lookup_macro(word, *macrotab)){ /*check if label was already defined as a macro*/
                 err("a label cannot have the same name as a macro");
                 error = 1;
                 continue;

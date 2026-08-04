@@ -4,51 +4,46 @@
 #include "utils.h"
 #include "../main/assembler.h"
 
-/*returns a hashed version of s in hashtab*/
-unsigned hash(char *s, nlist *hashtab[]){
-    unsigned hashval;
-
-    for(hashval = 0; *s != '\0'; s++){
-        hashval = *s + 31 *hashval;
-    }
-    return hashval % HASHSIZE;
-}
-/*looks up s in hashtab. returns a pointer to s on success, and pointer to NULL of failure*/
-nlist *lookup(char *s, nlist *hashtab[]){
-    nlist *np;
-    for(np = hashtab[hash(s,hashtab)]; np != NULL; np = np->next){
-        if(strcmp(s, np->name) == 0){
-            return np;
+/*looks up s in macrotab. returns a pointer to s on success, and pointer to NULL of failure*/
+macro *lookup_macro(char *s, macro *macrotab){
+    macro *mp = macrotab;
+    while(mp){
+        if(strcmp(mp->name, s) == 0){
+            return mp;
         }
+        mp = mp->next;
     }
     return NULL;
 }
-/*adds an nlist object in hashtab with name and defn. returns a pointer to it in success and pointer to NULL of failure*/
-nlist *install(char *name, char *defn, nlist *hashtab[]){
-    nlist *np;
-    unsigned hashval;
-    if((np = lookup(name, hashtab)) == NULL){
-        np = (nlist *) malloc(sizeof(*np));
-        if (np == NULL || (np->name = dupstr(name)) == NULL){
-            return NULL;
-        }
-        np->defn = dupstr(defn != NULL ? defn : "");
-        if(np->defn == NULL){
-            free(np->name);
-            free(np);
-            return NULL;
-        }
-        hashval = hash(name, hashtab);
-        np->next = hashtab[hashval];
-        hashtab[hashval] = np;
+/*adds an macro object in macrotab with name and defn. returns a pointer to it in success and pointer to NULL of failure*/
+macro *install_macro(char *name, char *defn, macro **macrotab){
+    macro *mp;
+
+    if(lookup_macro(name, *macrotab)){
+        fprintf(stderr, "error: macro '%s' already defined\n", name);
+        return 0;
     }
-    else {
-        free((void *) np->defn);
-        if((np->defn = dupstr(defn)) == NULL){
-            return NULL;
-        }
+    mp = malloc(sizeof(macro));
+    if(!mp){
+        fprintf(stderr, "error: malloc failed\n");
+        return NULL;      
     }
-    return np;
+    mp->name = dupstr(name);
+    if(!mp->name){
+        free(mp);
+        fprintf(stderr, "error: malloc failed");
+        return NULL;
+    }
+    mp->defn = dupstr(defn);
+    if(!mp->defn){
+        free(mp->name);
+        free(mp);
+        fprintf(stderr, "error: malloc failed");
+        return NULL;
+    }
+    mp->next = *macrotab;
+    *macrotab = mp;
+    return mp;
 }
 
 int add_symbol(const char *name, int value, char *attribute, symbol **symboltab){

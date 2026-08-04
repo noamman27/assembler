@@ -5,7 +5,8 @@
 #include "../main/assembler.h"
 #include "../lib/utils.h"
 
-nlist *macrotab[HASHSIZE];
+static macro *macro_list = NULL;
+macro **macrotab = &macro_list;
 
 /*appends text into buffer. makes sure that buffer has enough room,if not it reallocs based in capacity and length. returns 1 on success and 0 on failiure*/
 static int append_text(char **buffer, size_t *capacity, size_t *length, const char *text){
@@ -39,7 +40,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
     size_t macroContentCap = 0;
     size_t macroContentLen = 0;
     int mcro, line_count = 0; /*initialize mcro flag and line count that is set to 0*/
-    nlist *np; 
+    macro *np; 
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
         lc++;
         if(!lineend(line)){
@@ -59,7 +60,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
         if(word[0] == ';'){ /*check if line is note*/
             continue; /*ignore*/
         }
-        if((np = lookup(word,macrotab))){ /*if first word is a macro name*/
+        if((np = lookup_macro(word, *macrotab))){ /*if first word is a macro name*/
             fputs(np->defn, write); /*write the content of the macro to the file*/
             continue; 
         }
@@ -76,7 +77,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                 error = 1;
                 continue;
             }
-            if(lookup(macroName, macrotab)){ /*make sure new macro isnt already defined*/
+            if(lookup_macro(macroName, *macrotab)){ /*make sure new macro isnt already defined*/
                 fprintf(stderr, "error in line %d: macro '%s' already defined\n",lc, macroName);
                 error = 1;
                 continue;
@@ -101,7 +102,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                         error = 1;
                         continue;
                     }
-                    install(macroName, macroContent, macrotab); /*add the macro to macrotab*/
+                    install_macro(macroName, macroContent, macrotab); /*add the macro to macrotab*/
                     line_count = 0; /*reset line count*/
                     macroContentLen = 0; /*reset macro content length*/
                     if(macroContent != NULL){

@@ -3,11 +3,11 @@
 
 #define HASHSIZE 101
 
-typedef struct nlist {
+typedef struct macro {
     char *name;
     char *defn;
-    struct nlist *next;
-} nlist;
+    struct macro *next;
+} macro;
 
 typedef struct symbol {
     char *name;
@@ -18,9 +18,8 @@ typedef struct symbol {
 
 typedef symbol Symbol;
 
-unsigned hash(char *s, nlist *hashtab[]);
-nlist *lookup(char *s, nlist *hashtab[]);
-nlist *install(char *name, char *defn, nlist *hashtab[]);
+macro *lookup_macro(char *s, macro *macrotab);
+macro *install_macro(char *name, char *defn, macro **hashtab);
 int add_symbol(const char *name, int value, char *attribute, symbol **symboltab);
 symbol *lookup_symbol(char *name, symbol *symboltab);
 int getword(char word[], char line[], int *lp);

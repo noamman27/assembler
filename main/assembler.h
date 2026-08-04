@@ -60,7 +60,7 @@ typedef struct{
 int     pre_assemble(FILE *f, FILE *write, char *name);
 
 /* first-pass/first-pass.c */
-int     first_pass(FILE *f, char *name, nlist *macrotab[]);
+int     first_pass(FILE *f, char *name, macro *macrotab[]);
 
 /* second-pass/second-pass.c */
 int     second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, symbol *symboltab, char *data_image);
