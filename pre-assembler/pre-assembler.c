@@ -5,9 +5,6 @@
 #include "../main/assembler.h"
 #include "../lib/utils.h"
 
-static macro *macro_list = NULL;
-macro **macrotab = &macro_list;
-
 /*appends text into buffer. makes sure that buffer has enough room,if not it reallocs based in capacity and length. returns 1 on success and 0 on failiure*/
 static int append_text(char **buffer, size_t *capacity, size_t *length, const char *text){
     size_t text_len = strlen(text); /*get length of text*/
@@ -40,7 +37,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
     size_t macroContentCap = 0;
     size_t macroContentLen = 0;
     int mcro, line_count = 0; /*initialize mcro flag and line count that is set to 0*/
-    macro *np; 
+    macro *np, *macro_list = NULL, **macrotab = &macro_list; 
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
         lc++;
         if(!lineend(line)){

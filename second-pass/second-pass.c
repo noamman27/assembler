@@ -16,9 +16,8 @@ typedef struct ext_ref {
     struct ext_ref *next;
 } ExtRef;
 
-static ExtRef *ext_refs = NULL;
 
-static void add_ext_ref(char *name, int address, int lc){
+static void add_ext_ref(char *name, int address, int lc, ExtRef *ext_refs){
     ExtRef *e = (ExtRef *)malloc(sizeof(ExtRef));
 
     if(!e){ err("malloc failed in add_ext_ref"); return; }
@@ -28,10 +27,10 @@ static void add_ext_ref(char *name, int address, int lc){
     ext_refs   = e;
 }
 
-static void free_ext_refs(void){
-    ExtRef *e = ext_refs;
+static void free_ext_refs(ExtRef *ext_refs){
+    ExtRef *e = ext_refs, *next = NULL;
     while(e){
-        ExtRef *next = e->next;
+        next = e->next;
         free(e->name);
         free(e);
         e = next;
@@ -137,7 +136,7 @@ static void write_ent(char *basename, symbol *symboltab){
     fclose(f);
 }
 /* .ext file: one line per external reference — only written if refs exist   */
-static void write_ext(char *basename){
+static void write_ext(char *basename, ExtRef *ext_refs){
     char filename[MAXLINE];
     FILE *f;
     ExtRef *e;
@@ -176,6 +175,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
     int lc      = 0;
     char type;
     symbol *s;
+    ExtRef *ext_refs = NULL;
 
     rewind(input); /* step 1 setup: go back to beginning of pre-assembled file */
 
@@ -261,7 +261,7 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
                     memcpy(&code_image[ip], &jbf, sizeof(jbf));
                     /* step 8: if external, record the reference              */
                     if(strcmp(s->attribute, "external") == 0)
-                        add_ext_ref(sym, ic, lc);
+                        add_ext_ref(sym, ic, lc, ext_refs);
                 }
             }
             /* reg > 0: register operand (jmp $N) — already encoded in pass 1 */
@@ -274,15 +274,17 @@ int second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, 
     /* step 9: stop if errors — no output files                               */
     if(error){
         fprintf(stderr,"errors detected in second pass. no output files will be created\n");
-        free_ext_refs();
+        free_ext_refs(ext_refs);
+        free_symbols(symboltab);
         return 0;
     }
 
     /* step 10: write output files                                             */
     write_ob(basename, code_image, icf, dcf, data_image);
     write_ent(basename, symboltab);
-    write_ext(basename);
+    write_ext(basename, ext_refs);
 
-    free_ext_refs();
+    free_ext_refs(ext_refs);
+    free_symbols(symboltab);
     return 1;
 }

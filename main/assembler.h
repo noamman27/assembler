@@ -65,11 +65,6 @@ int     first_pass(FILE *f, char *name, macro *macrotab[]);
 /* second-pass/second-pass.c */
 int     second_pass(FILE *input, char *basename, int *code_image, int icf, int dcf, symbol *symboltab, char *data_image);
 
-/* lib/table.c — symbol table */
-int add_symbol(const char *name, int value, char *attribute, symbol **symboltab);
-symbol *lookup_symbol(char *name, symbol *symboltab);
-void update_symbols(int icf , symbol *symboltab);
-
 /* lib/utils.c — command helpers */
 int     gettype(char *s, char *t);
 int     isR(char *s);

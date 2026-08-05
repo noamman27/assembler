@@ -125,6 +125,8 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
     }
     if(error){
         fprintf(stderr, "errors detected in first pass. assembly will not continue\n");
+        free_macros(*macrotab);
+        free_symbols(symboltab);
         return 0;
     }
     ICF = IC;
@@ -132,6 +134,8 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
     update_symbols(ICF, symboltab); /*update the symbols by adding icf*/
     
     if(!second_pass(input, name, code_image, ICF, DCF, symboltab, data_image )){
+        /*we have to free the macro list here because we dont pass it to second pass*/
+        free_macros(*macrotab);
         return 0;
     }
     return 1;

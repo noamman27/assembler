@@ -21,7 +21,6 @@ mkdir outputs/6
 mv tests/test1.am outputs/1
 mv tests/test1.ent outputs/1
 mv tests/test1.ob outputs/1
-mv tests/test1.ext outputs/1
 
 mv tests/test2.am outputs/2
 mv tests/test2.ent outputs/2

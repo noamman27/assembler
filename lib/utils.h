@@ -20,8 +20,11 @@ typedef symbol Symbol;
 
 macro *lookup_macro(char *s, macro *macrotab);
 macro *install_macro(char *name, char *defn, macro **hashtab);
+void free_macros(macro *macrotab);
 int add_symbol(const char *name, int value, char *attribute, symbol **symboltab);
 symbol *lookup_symbol(char *name, symbol *symboltab);
+void free_symbols(symbol *symboltab);
+void update_symbols(int icf , symbol *symboltab);
 int getword(char word[], char line[], int *lp);
 int gettype(char *s, char *t);
 int isR(char *s);

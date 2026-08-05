@@ -45,6 +45,19 @@ macro *install_macro(char *name, char *defn, macro **macrotab){
     *macrotab = mp;
     return mp;
 }
+/*frees the list of macros starting from macrotab*/
+void free_macros(macro *macrotab){
+    macro *next;
+
+    while(macrotab){
+        next = macrotab->next;
+        free(macrotab->name);
+        free(macrotab->defn);
+        free(macrotab);
+        macrotab = next;
+    }
+}
+
 
 int add_symbol(const char *name, int value, char *attribute, symbol **symboltab){
     symbol *s;
@@ -81,6 +94,19 @@ symbol *lookup_symbol(char *name, symbol *symboltab){
     }
     return NULL;                      /* name not found */
 }
+
+/*frees the list of symbols starting from symboltab*/
+void free_symbols(symbol *symboltab){
+    symbol *next;
+
+    while(symboltab){
+        next = symboltab->next;
+        free(symboltab->name);
+        free(symboltab);
+        symboltab = next;
+    }
+}
+
 
 void update_symbols(int icf , symbol *symboltab){
     symbol *s = symboltab;               /* start at head of list */
