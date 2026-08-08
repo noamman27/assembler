@@ -37,7 +37,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
     size_t macroContentCap = 0;
     size_t macroContentLen = 0;
     int mcro, line_count = 0; /*initialize mcro flag and line count that is set to 0*/
-    macro *np, *macro_list = NULL, **macrotab = &macro_list; 
+    macro *mp, *macro_list = NULL, **macrotab = &macro_list; /*a macro pointer to use with lookup, the macro table, and the macro list (the macro list is the head of the list and the table is a pointer to it).*/
     while(fgets(line, MAXLINE, f)){ /*while f has more lines*/
         lc++;
         if(!lineend(line)){
@@ -57,8 +57,8 @@ int pre_assemble(FILE *f, FILE *write, char *name){
         if(word[0] == ';'){ /*check if line is note*/
             continue; /*ignore*/
         }
-        if((np = lookup_macro(word, *macrotab))){ /*if first word is a macro name*/
-            fputs(np->defn, write); /*write the content of the macro to the file*/
+        if((mp = lookup_macro(word, *macrotab))){ /*if first word is a macro name*/
+            fputs(mp->defn, write); /*write the content of the macro to the file*/
             continue; 
         }
         if(strcmp(word, "mcro") == 0){ /*if first word is a macro decleration*/
@@ -137,7 +137,7 @@ int pre_assemble(FILE *f, FILE *write, char *name){
         fprintf(stderr,"errors detected in pre assembly. assembly will not continue\n");
         return 0;
     }
-    fflush(write);
+    fflush(write); /*flush and rewind the file to avoid issues with next passes*/
     rewind(write);
     if(!first_pass(write, name, macrotab)){
         return 0;

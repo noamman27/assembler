@@ -14,10 +14,13 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
     symbol *symboltab = NULL, *sp; /*head of symbol list and a symbol pointer*/
     void *tmpbuf;
 
-    code_image = (int *)malloc(sizeof(int));
-    ip = 0;
+    code_image = (int *)malloc(sizeof(int)); /*initialize code image with malloc*/
+    ip = 0; /*initialize instruction pointer to 0*/
+    if(!code_image){ /*ensure malloc success*/
+        fprintf(stderr,"error: realloc failed\n");
+    }
     while(fgets(line, MAXLINE, input) != NULL){ /*run as long as we can read more from file*/
-        lc++;
+        lc++; /*increment line count every iteration*/
         lp = 0, isSym = 0; /*reset line pointer and isSym flag*/
         if(line[0] == ';' || ((len = getword(word, line, &lp)) == 0)){ /*check if line is omment or empty; if so we ignore it*/
             continue;
@@ -26,7 +29,7 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
         if(word[len-1] == ':'){ 
             word[len-1] = '\0'; /*remove the : from the label*/
             if(lookup_symbol(word, symboltab)){ /*check if label is already defined*/
-                fprintf(stderr, "error: label %s is already defined", word);
+                fprintf(stderr, "error in line %d: label %s is already defined", lc, word);
                 error = 1;
                 continue;
             }
@@ -45,7 +48,7 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
                 error = 1;
                 continue;
             }
-            if(isdigit(word[0])){
+            if(isdigit(word[0])){ /*make sure label doesnt start with a digit*/ 
                 err("a label cannot begin with a number");
                 error = 1;
                 continue;
@@ -55,12 +58,12 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
             getword(word, line, &lp); /*and get the next word*/
         }
         /*handle data instructions*/
-        if((status = handle_data(line, word, &data_image, &lp, isSym, sym, lc, &symboltab, &DC)) == 1){
-            /*function handled data so we continue*/
+        if((status = handle_data(line, word, &data_image, &lp, isSym, sym, lc, &symboltab, &DC))){
+            /*function returns 1 if everyting goes well*/
             continue;
         }
         else if(!status){
-            /*errors detected with instructions*/
+            /*errors detected with instructions. we dont need to do anything here since the function handles printing errors*/
             error = 1;
             continue;
         }
@@ -71,11 +74,12 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
             continue;
         }
         if(strcmp(word, ".extern") == 0){
-            if(!getword(word, line, &lp)){
+            if(!getword(word, line, &lp)){ /*get parameter*/
                 err("no symbol given as parameter for .extern");
                 error = 1;
                 continue;
             }
+            /*ensure parameter is valid*/
             if(isdigit(word[0])){
                 err("symbol given as parameter for .extern isnt valid");
                 error = 1;
@@ -91,15 +95,18 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
                 error = 1;
                 continue;
             }
+            /*make sure label isnt already defined as external*/
             sp = lookup_symbol(word, symboltab);
             if(sp && strcmp(sp->attribute, "external")){
                 fprintf(stderr,"error in line %d: label '%s' already defined not as external\n",lc, word);
                 error = 1;
                 continue;
             }
+            /*add the label to symboltab with external added to its attributes*/
             add_symbol(word, 0, "external", &symboltab);
             continue;
         }
+        /*make sure we were given a command*/
         if(!gettype(word,&type)){
             fprintf(stderr, "error in line %d: command %s not recognized\n", lc, word);
             error = 1;
@@ -110,12 +117,13 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
             error = 1;
             continue;
         }
-        if(isSym){
+        if(isSym){ /*if a symbol is being defined we add it to ic*/
             add_symbol(sym, IC, "code", &symboltab);
         }
+        /*update ip and ic*/
         ip++;
         IC+=4;
-        tmpbuf = realloc(code_image, (ip + 1) * sizeof(int)); /*realloc the array*/
+        tmpbuf = realloc(code_image, (ip + 1) * sizeof(int)); /*realloc the ic*/
         if(!tmpbuf){ /*ensure success*/
             err("realloc failed");
             error = 1;
@@ -123,16 +131,19 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
         }
         code_image = tmpbuf;
     }
-    if(error){
+    /*end of the iteration on the file*/
+    if(error){/*if we found errors we print an error and return*/
         fprintf(stderr, "errors detected in first pass. assembly will not continue\n");
-        free_macros(*macrotab);
+        free_macros(*macrotab); /*also free the tables*/
         free_symbols(symboltab);
         return 0;
     }
+    /*if no errors were found we save ic and dc*/
     ICF = IC;
     DCF = DC;
     update_symbols(ICF, symboltab); /*update the symbols by adding icf*/
     
+    /*and then call the second pass*/
     if(!second_pass(input, name, code_image, ICF, DCF, symboltab, data_image )){
         /*we have to free the macro list here because we dont pass it to second pass*/
         free_macros(*macrotab);
@@ -150,33 +161,34 @@ static int handle_data(char line[], char word[], char **data_image, int *lp, int
     long val;
     unsigned int uval;
     if(strcmp(word, ".dh") == 0 ) {
-    count = getparams(line, lp, params, types, lc);
-    if(isSym){ /*if a label is being defined we add it as data*/
-        add_symbol(sym, *DC, "data", symboltab);
+        count = getparams(line, lp, params, types, lc); /*get params for command*/
+        if(isSym){ /*if a label is being defined we add it as data*/
+            add_symbol(sym, *DC, "data", symboltab);
+        }
+        for(i = 0; i<count; i++){
+            if(types[i] != IMMED){ /*make sure we were given only numbers*/
+                err(".dh only accepts numbers");
+                return 0;
+            }
+            val = strtol(params[i], &endptr, 10); /*get the number*/
+            if(*endptr != '\0' || val > MAX_HALF_WORD || val < MIN_HALF_WORD){ /*ensure number is representable with 2 bytes*/
+                err("number given to .dh exceeds maximum");
+                return 0;
+            }
+            uval = (unsigned int)val;
+            tmp = (char *) realloc(*data_image, *DC += HALF_WORD); /*realloc the array*/
+            if(!tmp){
+                err("realloc failed");
+                return 0;
+            }
+            *data_image = tmp;
+            (*data_image)[*DC - 2] = (unsigned char)(uval & 0xFF); /*save the first 8 bits*/
+            (*data_image)[*DC - 1] = (unsigned char)((uval >> 8) & 0xFF); /*save 8 more bits*/
+        }
+        return 1;
     }
-    for(i = 0; i<count; i++){
-        if(types[i] != IMMED){
-            err(".dh only accepts numbers");
-            return 0;
-        }
-        val = strtol(params[i], &endptr, 10);
-        if(*endptr != '\0' || val > MAX_HALF_WORD || val < MIN_HALF_WORD){
-            err("number given to .dh exceeds maximum");
-            return 0;
-        }
-        uval = (unsigned int)val;
-        tmp = (char *) realloc(*data_image, *DC += HALF_WORD);
-        if(!tmp){
-            err("realloc failed");
-            return 0;
-        }
-        *data_image = tmp;
-        (*data_image)[*DC - 2] = (unsigned char)(uval & 0xFF);
-        (*data_image)[*DC - 1] = (unsigned char)((uval >> 8) & 0xFF);
-    }
-    return 1;
-}
 else if(strcmp(word, ".db") == 0){
+    /*all of the instructions are the same but with other constants so im not going to document them (except .asciz)*/
     count = getparams(line, lp, params, types, lc);
     if(isSym){ /*if a label is being defined we add it as data*/
         add_symbol(sym, *DC, "data", symboltab);
@@ -236,51 +248,54 @@ else if(strcmp(word, ".dw") == 0){
             err("no string given to .asciz");
             return 0;
         }
-        if(isSym){ 
+        if(isSym){  /*add symbol if defined*/
             add_symbol(sym, *DC, "data", symboltab);
         }
         for(i = 0; i < len; i++){
-            if(isdigit(word[i])){
+            if(isdigit(word[i])){ /*make sure no numbers given*/
                 err("digit given to .asciz");
                 return 0;
             }
         }
-        if(word[0] != '"' || word[len-1] != '"'){
+        if(word[0] != '"' || word[len-1] != '"'){ /*make sure string is in quotation marks*/
             err("string given to .asciz is not valid");
             return 0;
         }
-        remove_quotes(word);
-        len = (int)strlen(word);
-        *DC += len + 1;
-        tmpbuf = realloc(*data_image, *DC);
+        remove_quotes(word); /*we remove the quotations*/
+        len = (int)strlen(word); /*get the words length*/
+        *DC += len + 1; /*increment dc*/
+        tmpbuf = realloc(*data_image, *DC); /*realloc the array*/
         if(!tmpbuf){
             err("realloc failed");
             return 0;
         }
         *data_image = tmpbuf;
-        for(i = 0; i < len; i++){
+        for(i = 0; i < len; i++){/*add chars to data image*/
             (*data_image)[*DC - (len + 1) + i] = (unsigned char)word[i];
         }
-        (*data_image)[*DC - 1] = '\0';
+        (*data_image)[*DC - 1] = '\0'; /*end the string*/
         return 1;
     }
-    else{
+    else{ /*command was not data command. return -1*/
         return -1;
     }
 }
 /*hadnles the encoding of commands, takes the line, the word, the code image, line pointer, snd command type. returns 1 on success amnd 0 on error*/
 static int encode_command(char line[], char word[], int *code_image, int *lp, char type, int lc, int ip){
+    /*things needed for getparams*/
     int count, types[MAXLINE];
     char *params[MAXLINE];
+    /*bitfields for all commands*/
     R_BF rc_bf;
     I_BF ic_bf;
     J_BF jc_bf;
-    unsigned int word_value;
+    unsigned int word_value; /*an int to store the commands value*/
     word_value = 0;
     switch (type)
     {
     case 'r':
         if(count_params(word) == 2){
+            /*most of these are the same and very simple to understand so im just going to document the important things*/
             if(!(count = getparams(line, lp, params, types, lc))){
                 err("no parameter given to move command");
                 return 0;
@@ -300,18 +315,22 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 err("a move command requires two registers");
                 return 0;
             }
+            /*save values into the bitfield*/
             rc_bf.rs = atoi(params[0]);
             rc_bf.rt = 0;
             rc_bf.rd = atoi(params[1]);
             rc_bf.opcode = 1;
             rc_bf.funct = getfunct(word);
+            /*place the valeus into the correct spot int an unsigned int using shifting*/
             word_value = ((unsigned int)rc_bf.opcode << 26)
                        | ((unsigned int)rc_bf.rs << 21)
                        | ((unsigned int)rc_bf.rt << 16)
                        | ((unsigned int)rc_bf.rd << 11)
                        | ((unsigned int)rc_bf.funct << 6);
+            /*save into ic*/
             code_image[ip] = (int)word_value;
         } else {
+            /*like I said everything else is the same*/
             if(!(count = getparams(line, lp, params, types, lc))){
                 err("no parameter given to arithmatic or logical R command");
                 return 0;
@@ -456,14 +475,16 @@ static int encode_command(char line[], char word[], int *code_image, int *lp, ch
                 return 0;
             }
             if(types[0] == SYM){
+                /*here we just use the preset values for what we were given*/
                 jc_bf.opcode = 30;
                 jc_bf.reg = 0;
                 jc_bf.address = 0;
             }
             else if(types[0] == REG){
+                /*same here*/
                 jc_bf.opcode = 30;
                 jc_bf.reg = 1;
-                jc_bf.address = atoi(params[0]);
+                jc_bf.address = atoi(params[0]); /*but we do have a value to place in address*/
             }
             else{
                 err("an immediate value cannot be given to a jmp command");

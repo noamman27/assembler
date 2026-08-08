@@ -92,7 +92,7 @@ static void write_ob(char *basename, int *code_image, int icf, int dcf, char *da
         unsigned int word = (unsigned int)code_image[i];
         fprintf(f, "%04d %02X %02X %02X %02X\n",
         i * 4 + IC_START,
-        word & 0xFF,
+        word & 0xFF, /*shift and mask to get correct value*/
         (word >> 8) & 0xFF,
         (word >> 16) & 0xFF,
         (word >> 24) & 0xFF);
