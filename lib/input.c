@@ -167,7 +167,7 @@ int ungetch(char buffer[], char c, int *lp){
     (*lp)--;
     return 1;
 }
-/*puts the first word after lp in line inside word. returns the length of the word and updated lp*/
+/*puts the first word (not including commas) after lp in line inside word. returns the length of the word and updated lp*/
 int getword(char word[], char line[], int *lp){
     int i = *lp, j = 0;
 

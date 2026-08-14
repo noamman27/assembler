@@ -18,6 +18,7 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
     ip = 0; /*initialize instruction pointer to 0*/
     if(!code_image){ /*ensure malloc success*/
         fprintf(stderr,"error: realloc failed\n");
+        exit(1);
     }
     while(fgets(line, MAXLINE, input) != NULL){ /*run as long as we can read more from file*/
         lc++; /*increment line count every iteration*/
@@ -58,11 +59,12 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
             getword(word, line, &lp); /*and get the next word*/
         }
         /*handle data instructions*/
-        if((status = handle_data(line, word, &data_image, &lp, isSym, sym, lc, &symboltab, &DC))){
-            /*function returns 1 if everyting goes well*/
+        status = handle_data(line, word, &data_image, &lp, isSym, sym, lc, &symboltab, &DC);
+        if(status == 1){
+            /*function handled a data directive successfully*/
             continue;
         }
-        else if(!status){
+        else if(status == 0){
             /*errors detected with instructions. we dont need to do anything here since the function handles printing errors*/
             error = 1;
             continue;
@@ -127,7 +129,7 @@ int first_pass(FILE *input, char *name, macro *macrotab[]){
         if(!tmpbuf){ /*ensure success*/
             err("realloc failed");
             error = 1;
-            continue;
+            exit(1);
         }
         code_image = tmpbuf;
     }
@@ -267,7 +269,7 @@ else if(strcmp(word, ".dw") == 0){
         tmpbuf = realloc(*data_image, *DC); /*realloc the array*/
         if(!tmpbuf){
             err("realloc failed");
-            return 0;
+            exit(1);
         }
         *data_image = tmpbuf;
         for(i = 0; i < len; i++){/*add chars to data image*/

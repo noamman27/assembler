@@ -26,26 +26,26 @@ macro *install_macro(char *name, char *defn, macro **macrotab){
     mp = malloc(sizeof(macro));
     if(!mp){
         fprintf(stderr, "error: malloc failed\n");
-        return NULL;      
+        exit(1);     
     }
     mp->name = dupstr(name);
     if(!mp->name){
         free(mp);
         fprintf(stderr, "error: malloc failed");
-        return NULL;
+        exit(1);
     }
     mp->defn = dupstr(defn);
     if(!mp->defn){
         free(mp->name);
         free(mp);
         fprintf(stderr, "error: malloc failed");
-        return NULL;
+        exit(1);
     }
     mp->next = *macrotab;
     *macrotab = mp;
     return mp;
 }
-/*frees the list of macros starting from macrotab*/
+/*frees the list of macros starting from macrotab, not including the head of the list*/
 void free_macros(macro *macrotab){
     macro *next;
 
@@ -69,13 +69,13 @@ int add_symbol(const char *name, int value, char *attribute, symbol **symboltab)
     s = malloc(sizeof(*s));
     if(!s){                                               
         fprintf(stderr, "error: malloc failed\n");                                       
-        return 0;                                        
+        exit(1);                                       
     }
     s->name  = dupstr(name);  
     if(s->name == NULL){
         free(s);
         fprintf(stderr, "error: malloc failed");
-        return 0;
+        exit(1);
     }
     s->value = value;
     s->attribute = attribute;
@@ -95,7 +95,7 @@ symbol *lookup_symbol(char *name, symbol *symboltab){
     return NULL;                      /* name not found */
 }
 
-/*frees the list of symbols starting from symboltab*/
+/*frees the list of symbols starting from symboltab, not including the head of the list*/
 void free_symbols(symbol *symboltab){
     symbol *next;
 

@@ -163,6 +163,7 @@ int getfunct(char *s){
     return 0;
 }
 
+/*removes quotes from given string*/
 void remove_quotes(char *s){
     int i = 0;
     int j = 0;
@@ -175,6 +176,7 @@ void remove_quotes(char *s){
     s[j] = '\0';
 }
 
+/*returns a pointer to a char using malloc that is a duplicate of given string*/
 char *dupstr(const char *s){
     char *copy;
     size_t len;

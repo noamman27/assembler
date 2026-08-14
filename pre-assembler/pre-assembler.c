@@ -113,13 +113,11 @@ int pre_assemble(FILE *f, FILE *write, char *name){
                     /* append token and remaining line safely to macroContent */
                     if(!append_text(&macroContent, &macroContentCap, &macroContentLen, word)){
                         fprintf(stderr, "realloc error\n");
-                        error = 1;
-                        continue;
+                        exit(1);
                     }
                     if(!append_text(&macroContent, &macroContentCap, &macroContentLen, line + lp)){
                         fprintf(stderr, "realloc error\n");
-                        error = 1;
-                        continue;
+                        exit(1);
                     }
                     continue;
                 }
